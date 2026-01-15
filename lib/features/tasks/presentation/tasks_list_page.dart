@@ -5,9 +5,9 @@ class TasksListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: AppBar(title: Text('Tasks')),
-      body: Center(child: Text('Tasks list')),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Tasks')),
+      body: const Center(child: Text('Tasks list')),
     );
   }
 }
