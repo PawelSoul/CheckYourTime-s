@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/sessions_repository.dart';
@@ -12,11 +11,7 @@ class ActiveTimerState {
   final TimerStatus status;
   final ActiveSession? session;
 
-  const ActiveTimerState({
-    required this.status,
-    required this.session,
-  });
-
+  const ActiveTimerState({required this.status, required this.session});
   const ActiveTimerState.idle() : status = TimerStatus.idle, session = null;
 
   ActiveTimerState copyWith({
@@ -30,24 +25,21 @@ class ActiveTimerState {
   }
 }
 
-/// Repository provider (później podmienisz na DB impl)
 final sessionsRepositoryProvider = Provider<SessionsRepository>((ref) {
   final repo = InMemorySessionsRepository();
-  ref.onDispose(() {
-    repo.dispose();
-  });
+  ref.onDispose(repo.dispose);
   return repo;
 });
 
 final activeTimerControllerProvider =
     StateNotifierProvider<ActiveTimerController, ActiveTimerState>((ref) {
-  return ActiveTimerController(ref.read);
+  return ActiveTimerController(ref);
 });
 
 class ActiveTimerController extends StateNotifier<ActiveTimerState> {
-  ActiveTimerController(this._read) : super(const ActiveTimerState.idle());
+  ActiveTimerController(this.ref) : super(const ActiveTimerState.idle());
 
-  final Reader _read;
+  final Ref ref;
 
   Timer? _ticker;
   DateTime? _lastTickAt;
@@ -100,7 +92,7 @@ class ActiveTimerController extends StateNotifier<ActiveTimerState> {
   Future<void> stopAndSave() async {
     if (state.session == null) return;
 
-    final repo = _read(sessionsRepositoryProvider);
+    final repo = ref.read(sessionsRepositoryProvider);
 
     _stopTicker();
 
@@ -147,11 +139,7 @@ class ActiveTimerController extends StateNotifier<ActiveTimerState> {
     _lastTickAt = null;
   }
 
-  String _newId() {
-    // proste ID bez pakietów
-    final ms = DateTime.now().microsecondsSinceEpoch;
-    return 'sess_$ms';
-    }
+  String _newId() => 'sess_${DateTime.now().microsecondsSinceEpoch}';
 
   @override
   void dispose() {
