@@ -1,3 +1,22 @@
+import 'dart:async';
+
+class CompletedSession {
+  final String id;
+  final String taskName;
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final Duration duration;
+
+  CompletedSession({
+    required this.id,
+    required this.taskName,
+    required this.startedAt,
+    required this.endedAt,
+    required this.duration,
+  });
+}
+
 abstract class SessionsRepository {
-  // TODO: Define sessions repository interface
+  Stream<List<CompletedSession>> watchAll();
+  Future<void> add(CompletedSession session);
 }
