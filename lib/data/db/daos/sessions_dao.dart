@@ -1,42 +1,135 @@
 import 'package:drift/drift.dart';
 import '../app_db.dart';
-import '../tables/sessions_table.dart';
 
 part 'sessions_dao.g.dart';
 
-@DriftAccessor(tables: [Sessions])
+@DriftAccessor(tables: [SessionsTable, TasksTable])
 class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
-  SessionsDao(AppDb db) : super(db);
+  SessionsDao(super.db);
 
-  Future<List<Session>> getAllSessions() => select(sessions).get();
-  
-  Stream<List<Session>> watchAllSessions() => select(sessions).watch();
-  
-  Future<Session?> getSessionById(String id) {
-    return (select(sessions)..where((s) => s.id.equals(id))).getSingleOrNull();
+  // --- CREATE ---
+  Future<void> upsertSession(SessionsTableCompanion session) async {
+    await into(sessionsTable).insertOnConflictUpdate(session);
   }
-  
-  Future<List<Session>> getSessionsByTaskName(String taskName) {
-    return (select(sessions)..where((s) => s.taskName.equals(taskName))).get();
+
+  // Start sesji (endAt = null)
+  Future<void> startSession({
+    required String sessionId,
+    required String taskId,
+    String? note,
+    required int startAtMs,
+    required int nowMs,
+  }) async {
+    await into(sessionsTable).insert(
+      SessionsTableCompanion.insert(
+        id: sessionId,
+        taskId: taskId,
+        startAt: startAtMs,
+        endAt: const Value(null),
+        durationSec: const Value(0),
+        note: note != null ? Value(note) : const Value.absent(),
+        createdAt: nowMs,
+        updatedAt: nowMs,
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
   }
-  
-  Future<List<Session>> getSessionsByDateRange(DateTime start, DateTime end) {
-    return (select(sessions)
-      ..where((s) => s.startedAt.isBiggerOrEqualValue(start))
-      ..where((s) => s.startedAt.isSmallerOrEqualValue(end))
-      ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
-        .get();
+
+  // Stop sesji
+  Future<void> stopSession({
+    required String sessionId,
+    required int endAtMs,
+    required int nowMs,
+  }) async {
+    final existing = await (select(sessionsTable)..where((s) => s.id.equals(sessionId))).getSingleOrNull();
+    if (existing == null) return;
+
+    final start = existing.startAt;
+    final durationSec = ((endAtMs - start) / 1000).round().clamp(0, 1 << 31);
+
+    await (update(sessionsTable)..where((s) => s.id.equals(sessionId))).write(
+      SessionsTableCompanion(
+        endAt: Value(endAtMs),
+        durationSec: Value(durationSec),
+        updatedAt: Value(nowMs),
+      ),
+    );
   }
-  
-  Future<void> insertSession(SessionsCompanion session) => 
-      into(sessions).insert(session);
-  
-  Future<bool> updateSession(SessionsCompanion session) => 
-      update(sessions).replace(session);
-  
+
+  // --- READ ---
+  Future<SessionRow?> getById(String id) async {
+    return (select(sessionsTable)..where((s) => s.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Aktywna sesja = endAt IS NULL (zakładamy max 1)
+  Future<SessionRow?> getActiveSession() async {
+    final q = select(sessionsTable)..where((s) => s.endAt.isNull());
+    q.orderBy([(s) => OrderingTerm(expression: s.startAt, mode: OrderingMode.desc)]);
+    return q.getSingleOrNull();
+  }
+
+  Stream<SessionRow?> watchActiveSession() {
+    final q = select(sessionsTable)..where((s) => s.endAt.isNull());
+    q.orderBy([(s) => OrderingTerm(expression: s.startAt, mode: OrderingMode.desc)]);
+    return q.watchSingleOrNull();
+  }
+
+  /// Sesje w zakresie [fromMs, toMs) po startAt
+  Future<List<SessionWithTask>> getSessionsWithTasksInRange({
+    required int fromMs,
+    required int toMs,
+  }) async {
+    final q = select(sessionsTable).join([
+      innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
+    ])
+      ..where(sessionsTable.startAt.isBiggerOrEqualValue(fromMs) &
+      sessionsTable.startAt.isSmallerThanValue(toMs))
+      ..orderBy([OrderingTerm.desc(sessionsTable.startAt)]);
+
+    final rows = await q.get();
+    return rows.map((r) => SessionWithTask(
+      session: r.readTable(sessionsTable),
+      task: r.readTable(tasksTable),
+    )).toList();
+  }
+
+  Stream<List<SessionWithTask>> watchSessionsWithTasksInRange({
+    required int fromMs,
+    required int toMs,
+  }) {
+    final q = select(sessionsTable).join([
+      innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
+    ])
+      ..where(sessionsTable.startAt.isBiggerOrEqualValue(fromMs) &
+      sessionsTable.startAt.isSmallerThanValue(toMs))
+      ..orderBy([OrderingTerm.desc(sessionsTable.startAt)]);
+
+    return q.watch().map((rows) => rows.map((r) => SessionWithTask(
+      session: r.readTable(sessionsTable),
+      task: r.readTable(tasksTable),
+    )).toList());
+  }
+
+  // --- UPDATE ---
+  Future<void> updateNote(String sessionId, {String? note, required int nowMs}) async {
+    await (update(sessionsTable)..where((s) => s.id.equals(sessionId))).write(
+      SessionsTableCompanion(
+        note: note != null ? Value(note) : const Value(null),
+        updatedAt: Value(nowMs),
+      ),
+    );
+  }
+
+  // --- DELETE ---
   Future<int> deleteSession(String id) {
-    return (delete(sessions)..where((s) => s.id.equals(id))).go();
+    return (delete(sessionsTable)..where((s) => s.id.equals(id))).go();
   }
-  
-  Future<int> deleteAllSessions() => delete(sessions).go();
 }
+
+class SessionWithTask {
+  final SessionsTableData session;
+  final TasksTableData task;
+  SessionWithTask({required this.session, required this.task});
+}
+
+typedef SessionRow = SessionsTableData;
