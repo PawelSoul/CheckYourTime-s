@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/app_db_provider.dart';
 import '../data/sessions_repository.dart';
 import '../data/sessions_repository_impl.dart';
 import '../domain/active_session.dart';
@@ -25,14 +26,18 @@ class ActiveTimerState {
   }
 }
 
+/// ✅ Drift-backed repo (zamiast InMemory)
 final sessionsRepositoryProvider = Provider<SessionsRepository>((ref) {
-  final repo = InMemorySessionsRepository();
-  ref.onDispose(repo.dispose);
-  return repo;
+  final db = ref.watch(appDbProvider);
+
+  return DriftSessionsRepository(
+    sessionsDao: db.sessionsDao,
+    tasksDao: db.tasksDao,
+  );
 });
 
 final activeTimerControllerProvider =
-    StateNotifierProvider<ActiveTimerController, ActiveTimerState>((ref) {
+StateNotifierProvider<ActiveTimerController, ActiveTimerState>((ref) {
   return ActiveTimerController(ref);
 });
 
@@ -44,13 +49,17 @@ class ActiveTimerController extends StateNotifier<ActiveTimerState> {
   Timer? _ticker;
   DateTime? _lastTickAt;
 
-  void start({required String taskName}) {
+  /// ✅ ważne: timer powinien startować po taskId (z DB),
+  /// a taskName trzymasz do UI.
+  void start({required String taskId, required String taskName}) {
+    if (taskId.trim().isEmpty) return;
     if (taskName.trim().isEmpty) return;
 
     _stopTicker();
 
     final now = DateTime.now();
     final session = ActiveSession(
+      taskId: taskId.trim(),
       taskName: taskName.trim(),
       startedAt: now,
       elapsed: Duration.zero,
@@ -101,6 +110,7 @@ class ActiveTimerController extends StateNotifier<ActiveTimerState> {
 
     final completed = CompletedSession(
       id: _newId(),
+      taskId: s.taskId,
       taskName: s.taskName,
       startedAt: s.startedAt,
       endedAt: endedAt,

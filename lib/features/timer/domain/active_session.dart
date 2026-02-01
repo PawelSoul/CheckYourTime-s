@@ -1,13 +1,12 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class ActiveSession {
+  final String taskId;
   final String taskName;
   final DateTime startedAt;
   final Duration elapsed;
   final bool isRunning;
 
   const ActiveSession({
+    required this.taskId,
     required this.taskName,
     required this.startedAt,
     required this.elapsed,
@@ -15,12 +14,14 @@ class ActiveSession {
   });
 
   ActiveSession copyWith({
+    String? taskId,
     String? taskName,
     DateTime? startedAt,
     Duration? elapsed,
     bool? isRunning,
   }) {
     return ActiveSession(
+      taskId: taskId ?? this.taskId,
       taskName: taskName ?? this.taskName,
       startedAt: startedAt ?? this.startedAt,
       elapsed: elapsed ?? this.elapsed,

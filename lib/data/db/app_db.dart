@@ -7,44 +7,42 @@ import 'package:path_provider/path_provider.dart';
 
 import 'tables/tasks_table.dart';
 import 'tables/sessions_table.dart';
+
 import 'daos/tasks_dao.dart';
 import 'daos/sessions_dao.dart';
 
 part 'app_db.g.dart';
 
 @DriftDatabase(
-  tables: [
-    TasksTable,
-    SessionsTable,
-  ],
-  daos: [
-    TasksDao,
-    SessionsDao,
-  ],
+  tables: [TasksTable, SessionsTable],
+  daos: [TasksDao, SessionsDao],
 )
 class AppDb extends _$AppDb {
   AppDb() : super(_openConnection());
 
-  /// Zwiększaj przy każdej zmianie schematu.
+  /// v1 -> v2 -> v3
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-
-      // Dla SQLite trzeba włączyć FK:
       await customStatement('PRAGMA foreign_keys = ON');
     },
     onUpgrade: (m, from, to) async {
       await customStatement('PRAGMA foreign_keys = ON');
 
-      // Przykład migracji v1 -> v2:
+      // v2: dodaliśmy sessions.note
       if (from < 2) {
-        // Załóżmy, że w v2 dodaliśmy kolumnę "note" w sessions.
-        // Jeśli już ją masz, usuń ten blok.
         await m.addColumn(sessionsTable, sessionsTable.note);
+      }
+
+      // v3: dodaliśmy tasks.tag / plannedTimeSec / goalSec
+      if (from < 3) {
+        await m.addColumn(tasksTable, tasksTable.tag);
+        await m.addColumn(tasksTable, tasksTable.plannedTimeSec);
+        await m.addColumn(tasksTable, tasksTable.goalSec);
       }
     },
     beforeOpen: (details) async {
@@ -53,8 +51,6 @@ class AppDb extends _$AppDb {
   );
 }
 
-/// Drift Flutter: najlepiej użyć driftDatabase(...) albo LazyDatabase.
-/// Poniżej klasyczne LazyDatabase.
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();

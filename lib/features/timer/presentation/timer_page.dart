@@ -80,7 +80,10 @@ class _TimerPageState extends ConsumerState<TimerPage> {
               status: state.status,
               hasTaskName: _taskController.text.trim().isNotEmpty,
               onStart: () {
-                controller.start(taskName: _taskController.text);
+                controller.start(
+                                  taskId: _taskIdController.text,
+                                  taskName: _taskController.text,
+                                );
               },
               onPause: controller.pause,
               onResume: controller.resume,
