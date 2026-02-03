@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../application/active_timer_controller.dart';
 
 class TimerActions extends StatelessWidget {
-  final TimerStatus status;
-  final bool hasTaskName;
+  final bool isIdle;
+  final bool isRunning;
+  final bool isPaused;
 
   final VoidCallback onStart;
   final VoidCallback onPause;
@@ -12,8 +12,9 @@ class TimerActions extends StatelessWidget {
 
   const TimerActions({
     super.key,
-    required this.status,
-    required this.hasTaskName,
+    required this.isIdle,
+    required this.isRunning,
+    required this.isPaused,
     required this.onStart,
     required this.onPause,
     required this.onResume,
@@ -24,16 +25,16 @@ class TimerActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final buttons = <Widget>[];
 
-    if (status == TimerStatus.idle) {
+    if (isIdle) {
       buttons.add(
         FilledButton(
-          onPressed: hasTaskName ? onStart : null,
+          onPressed: onStart,
           child: const Text('Start'),
         ),
       );
     }
 
-    if (status == TimerStatus.running) {
+    if (isRunning) {
       buttons.addAll([
         FilledButton(
           onPressed: onPause,
@@ -46,7 +47,7 @@ class TimerActions extends StatelessWidget {
       ]);
     }
 
-    if (status == TimerStatus.paused) {
+    if (isPaused) {
       buttons.addAll([
         FilledButton(
           onPressed: onResume,
