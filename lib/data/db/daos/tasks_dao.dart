@@ -1,5 +1,8 @@
 import 'package:drift/drift.dart';
+
 import '../app_db.dart';
+import '../tables/tasks_table.dart';
+import '../tables/sessions_table.dart';
 
 part 'tasks_dao.g.dart';
 

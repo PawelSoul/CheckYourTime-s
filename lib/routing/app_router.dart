@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/shell/presentation/shell_page.dart';
 import '../features/tasks/presentation/tasks_list_page.dart';
-import '../features/timer/presentation/timer_page.dart';
+import '../features/timer/presentation/timer_screen.dart';
 import '../features/calendar/presentation/calendar_page.dart';
 
 enum AppRoute {
@@ -29,7 +29,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/timer',
             name: AppRoute.timer.name,
-            builder: (context, state) => const TimerPage(),
+            builder: (context, state) => const TimerScreen(),
           ),
           GoRoute(
             path: '/calendar',
