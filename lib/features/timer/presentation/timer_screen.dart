@@ -45,6 +45,11 @@ class TimerScreen extends ConsumerWidget {
       if (cleaned.isEmpty) return;
 
       await controller.setTaskName(taskId: taskId, name: cleaned);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Zadanie zapisane. Pojawi się na liście i w kalendarzu.')),
+        );
+      }
     } finally {
       textController.dispose();
     }

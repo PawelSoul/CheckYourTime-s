@@ -1,3 +1,5 @@
+import '../../../data/db/daos/tasks_dao.dart';
+
 abstract class TasksRepository {
-  // TODO: Define tasks repository interface
+  Stream<List<TaskRow>> watchAll({bool includeArchived = false});
 }
