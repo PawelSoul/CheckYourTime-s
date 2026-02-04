@@ -19,6 +19,7 @@ class TimerScreen extends ConsumerWidget {
     try {
       final name = await showDialog<String>(
         context: context,
+        useRootNavigator: true,
         builder: (ctx) => AlertDialog(
           title: const Text('Nazwa taska'),
           content: TextField(
@@ -44,11 +45,15 @@ class TimerScreen extends ConsumerWidget {
       final cleaned = (name ?? '').trim();
       if (cleaned.isEmpty) return;
 
-      await controller.setTaskName(taskId: taskId, name: cleaned);
-      if (!context.mounted) return;
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(content: Text('Zadanie zapisane. Pojawi się na liście i w kalendarzu.')),
-      );
+      // Odkładamy zapis i SnackBar do następnej ramki, żeby dialog zdążył się
+      // w pełni zamknąć i uniknąć błędu _dependents.isEmpty.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await controller.setTaskName(taskId: taskId, name: cleaned);
+        if (!context.mounted) return;
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(content: Text('Zadanie zapisane. Pojawi się na liście i w kalendarzu.')),
+        );
+      });
     } finally {
       textController.dispose();
     }
