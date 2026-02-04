@@ -76,7 +76,7 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
     return q.watchSingleOrNull();
   }
 
-  /// Sesje w zakresie [fromMs, toMs) po startAt
+  /// Sesje zakończone (endAt != null) w zakresie [fromMs, toMs) po startAt – do kalendarza.
   Future<List<SessionWithTask>> getSessionsWithTasksInRange({
     required int fromMs,
     required int toMs,
@@ -85,7 +85,8 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
       innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
     ])
       ..where(sessionsTable.startAt.isBiggerOrEqualValue(fromMs) &
-      sessionsTable.startAt.isSmallerThanValue(toMs))
+          sessionsTable.startAt.isSmallerThanValue(toMs) &
+          sessionsTable.endAt.isNotNull())
       ..orderBy([OrderingTerm.desc(sessionsTable.startAt)]);
 
     final rows = await q.get();
@@ -103,7 +104,8 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
       innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
     ])
       ..where(sessionsTable.startAt.isBiggerOrEqualValue(fromMs) &
-      sessionsTable.startAt.isSmallerThanValue(toMs))
+          sessionsTable.startAt.isSmallerThanValue(toMs) &
+          sessionsTable.endAt.isNotNull())
       ..orderBy([OrderingTerm.desc(sessionsTable.startAt)]);
 
     return q.watch().map((rows) => rows.map((r) => SessionWithTask(
@@ -125,6 +127,11 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
   // --- DELETE ---
   Future<int> deleteSession(String id) {
     return (delete(sessionsTable)..where((s) => s.id.equals(id))).go();
+  }
+
+  /// Usuwa wszystkie sesje powiązane z zadaniem (przed usunięciem taska).
+  Future<int> deleteSessionsByTaskId(String taskId) {
+    return (delete(sessionsTable)..where((s) => s.taskId.equals(taskId))).go();
   }
 }
 

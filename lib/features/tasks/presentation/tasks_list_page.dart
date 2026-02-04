@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../timer/presentation/widgets/start_task_sheet.dart';
 import '../tasks_providers.dart';
 import 'widgets/task_list_item.dart';
 
@@ -39,7 +37,7 @@ class TasksListPage extends ConsumerWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          'Brak kategorii.\nKliknij Start stoper\ni dodaj nową.',
+                          'Brak kategorii.\nPrzejdź do Stoper,\nżeby dodać nową i zacząć odliczanie.',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
@@ -105,15 +103,6 @@ class TasksListPage extends ConsumerWidget {
                 : _TasksOfCategory(categoryId: selectedCategory!),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showStartTaskSheet(
-          context,
-          ref,
-          onTaskSelected: () => context.go('/timer'),
-        ),
-        icon: const Icon(Icons.play_arrow),
-        label: const Text('Start stoper'),
       ),
     );
   }

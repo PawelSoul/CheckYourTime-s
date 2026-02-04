@@ -7,6 +7,83 @@ import 'widgets/start_task_sheet.dart';
 class TimerScreen extends ConsumerWidget {
   const TimerScreen({super.key});
 
+  static Future<void> _onStop(
+    BuildContext context,
+    WidgetRef ref,
+    TimerController controller,
+  ) async {
+    final result = await controller.stop();
+    if (!context.mounted || result == null) return;
+
+    final name = await _showNameDialog(context, result.duration);
+    if (!context.mounted) return;
+
+    if (name != null && name.trim().isNotEmpty) {
+      await controller.setTaskName(taskId: result.taskId, name: name.trim());
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesja zapisana. Pojawi się w kalendarzu.'),
+        ),
+      );
+    }
+  }
+
+  static Future<String?> _showNameDialog(BuildContext context, Duration duration) async {
+    final controller = TextEditingController();
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    final durationStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
+
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nazwa zadania'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Czas sesji: $durationStr',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nazwa',
+                  hintText: 'np. Nauka / Gotowanie',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (v) =>
+                    Navigator.of(ctx).pop(v.trim().isEmpty ? null : v),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Anuluj'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final v = controller.text.trim();
+                Navigator.of(ctx).pop(v.isEmpty ? null : v);
+              },
+              child: const Text('Zapisz'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
   String _fmt(Duration d) {
     final h = d.inHours.toString().padLeft(2, '0');
     final m = (d.inMinutes % 60).toString().padLeft(2, '0');
@@ -53,17 +130,7 @@ class TimerScreen extends ConsumerWidget {
                 ),
                 ElevatedButton(
                   onPressed: state.activeSessionId != null
-                      ? () async {
-                          await controller.stop();
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Sesja zapisana. Pojawi się w kalendarzu.',
-                              ),
-                            ),
-                          );
-                        }
+                      ? () => _onStop(context, ref, controller)
                       : null,
                   child: const Text('Stop'),
                 ),

@@ -13,7 +13,10 @@ import '../../../data/db/daos/sessions_dao.dart';
 /// Provider wybranego miesiąca (do nawigacji w kalendarzu).
 final calendarMonthProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
-/// Sesje z zadaniami dla aktualnie wybranego miesiąca w kalendarzu.
+/// Wybrany dzień (do widoku dnia).
+final selectedDayProvider = StateProvider<DateTime?>((ref) => null);
+
+/// Sesje z zadaniami dla aktualnie wybranego miesiąca w kalendarzu (tylko zakończone).
 final calendarSessionsProvider = StreamProvider.autoDispose<List<SessionWithTask>>((ref) {
   final sessionsDao = ref.watch(sessionsDaoProvider);
   final month = ref.watch(calendarMonthProvider);

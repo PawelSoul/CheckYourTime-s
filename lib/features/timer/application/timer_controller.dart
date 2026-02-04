@@ -44,6 +44,13 @@ class TimerState {
   static const initial = TimerState(isRunning: false, elapsed: Duration.zero);
 }
 
+/// Wynik zatrzymania sesji – do dialogu nazwy zadania.
+class StopResult {
+  const StopResult({required this.taskId, required this.duration});
+  final String taskId;
+  final Duration duration;
+}
+
 final timerControllerProvider =
     NotifierProvider.autoDispose<TimerController, TimerState>(TimerController.new);
 
@@ -172,13 +179,14 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     state = state.copyWith(isRunning: true);
   }
 
-  /// Zatrzymuje sesję w DB. Nazwę taska uzupełnia o "[#n]" gdy w tej samej kategorii jest duplikat daty.
-  Future<void> stop() async {
+  /// Zatrzymuje sesję w DB. Zwraca [StopResult] z taskId i duration do dialogu nazwy (lub null gdy brak sesji).
+  Future<StopResult?> stop() async {
     final sessionId = state.activeSessionId;
     final taskId = state.activeTaskId;
 
-    if (sessionId == null || taskId == null) return;
+    if (sessionId == null || taskId == null) return null;
 
+    final duration = _stopwatch.elapsed;
     _stopwatch.stop();
     _cancelTicker();
 
@@ -202,8 +210,9 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
       nowMs: nowMs,
     );
 
-    if (_disposed) return;
+    if (_disposed) return null;
     state = TimerState.initial;
+    return StopResult(taskId: taskId, duration: duration);
   }
 
   /// Zmienia nazwę zadania (np. z ekranu edycji).
