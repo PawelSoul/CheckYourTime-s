@@ -3,6 +3,276 @@
 part of 'app_db.dart';
 
 // ignore_for_file: type=lint
+class $CategoriesTableTable extends CategoriesTable
+    with TableInfo<$CategoriesTableTable, CategoriesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoriesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _colorHexMeta =
+      const VerificationMeta('colorHex');
+  @override
+  late final GeneratedColumn<String> colorHex = GeneratedColumn<String>(
+      'color_hex', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('#4F46E5'));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [id, name, colorHex, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'categories_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<CategoriesTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color_hex')) {
+      context.handle(_colorHexMeta,
+          colorHex.isAcceptableOrUnknown(data['color_hex']!, _colorHexMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CategoriesTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoriesTableData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      colorHex: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}color_hex'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $CategoriesTableTable createAlias(String alias) {
+    return $CategoriesTableTable(attachedDatabase, alias);
+  }
+}
+
+class CategoriesTableData extends DataClass
+    implements Insertable<CategoriesTableData> {
+  final String id;
+  final String name;
+  final String colorHex;
+
+  /// Unix epoch ms
+  final int createdAt;
+  const CategoriesTableData(
+      {required this.id,
+      required this.name,
+      required this.colorHex,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['color_hex'] = Variable<String>(colorHex);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  CategoriesTableCompanion toCompanion(bool nullToAbsent) {
+    return CategoriesTableCompanion(
+      id: Value(id),
+      name: Value(name),
+      colorHex: Value(colorHex),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CategoriesTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoriesTableData(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      colorHex: serializer.fromJson<String>(json['colorHex']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'colorHex': serializer.toJson<String>(colorHex),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  CategoriesTableData copyWith(
+          {String? id, String? name, String? colorHex, int? createdAt}) =>
+      CategoriesTableData(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        colorHex: colorHex ?? this.colorHex,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  CategoriesTableData copyWithCompanion(CategoriesTableCompanion data) {
+    return CategoriesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoriesTableData(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, colorHex, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoriesTableData &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.colorHex == this.colorHex &&
+          other.createdAt == this.createdAt);
+}
+
+class CategoriesTableCompanion extends UpdateCompanion<CategoriesTableData> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> colorHex;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const CategoriesTableCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.colorHex = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoriesTableCompanion.insert({
+    required String id,
+    required String name,
+    this.colorHex = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        createdAt = Value(createdAt);
+  static Insertable<CategoriesTableData> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? colorHex,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (colorHex != null) 'color_hex': colorHex,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoriesTableCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<String>? colorHex,
+      Value<int>? createdAt,
+      Value<int>? rowid}) {
+    return CategoriesTableCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      colorHex: colorHex ?? this.colorHex,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (colorHex.present) {
+      map['color_hex'] = Variable<String>(colorHex.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoriesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TasksTableTable extends TasksTable
     with TableInfo<$TasksTableTable, TasksTableData> {
   @override
@@ -37,6 +307,15 @@ class $TasksTableTable extends TasksTable
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_archived" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _categoryIdMeta =
+      const VerificationMeta('categoryId');
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+      'category_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES categories_table (id)'));
   static const VerificationMeta _tagMeta = const VerificationMeta('tag');
   @override
   late final GeneratedColumn<String> tag = GeneratedColumn<String>(
@@ -76,6 +355,7 @@ class $TasksTableTable extends TasksTable
         name,
         colorHex,
         isArchived,
+        categoryId,
         tag,
         plannedTimeSec,
         goalSec,
@@ -112,6 +392,12 @@ class $TasksTableTable extends TasksTable
           _isArchivedMeta,
           isArchived.isAcceptableOrUnknown(
               data['is_archived']!, _isArchivedMeta));
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+          _categoryIdMeta,
+          categoryId.isAcceptableOrUnknown(
+              data['category_id']!, _categoryIdMeta));
     }
     if (data.containsKey('tag')) {
       context.handle(
@@ -156,6 +442,8 @@ class $TasksTableTable extends TasksTable
           .read(DriftSqlType.string, data['${effectivePrefix}color_hex'])!,
       isArchived: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_archived'])!,
+      categoryId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_id']),
       tag: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tag']),
       plannedTimeSec: attachedDatabase.typeMapping
@@ -181,7 +469,10 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
   final String colorHex;
   final bool isArchived;
 
-  /// Kategoria = tag (np. "Matematyka", "Siłownia"). Zadania w tej samej kategorii mają ten sam tag.
+  /// v4: kategoria – każdy task należy do jednej kategorii (nullable przy migracji)
+  final String? categoryId;
+
+  /// v3: tag (zachowany dla kompatybilności, może być null)
   final String? tag;
 
   /// v3: planowany czas dzienny/na task (sekundy) - do progressu
@@ -198,6 +489,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       required this.name,
       required this.colorHex,
       required this.isArchived,
+      this.categoryId,
       this.tag,
       required this.plannedTimeSec,
       required this.goalSec,
@@ -210,6 +502,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     map['name'] = Variable<String>(name);
     map['color_hex'] = Variable<String>(colorHex);
     map['is_archived'] = Variable<bool>(isArchived);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
     if (!nullToAbsent || tag != null) {
       map['tag'] = Variable<String>(tag);
     }
@@ -226,6 +521,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       name: Value(name),
       colorHex: Value(colorHex),
       isArchived: Value(isArchived),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
       tag: tag == null && nullToAbsent ? const Value.absent() : Value(tag),
       plannedTimeSec: Value(plannedTimeSec),
       goalSec: Value(goalSec),
@@ -242,6 +540,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       name: serializer.fromJson<String>(json['name']),
       colorHex: serializer.fromJson<String>(json['colorHex']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
       tag: serializer.fromJson<String?>(json['tag']),
       plannedTimeSec: serializer.fromJson<int>(json['plannedTimeSec']),
       goalSec: serializer.fromJson<int>(json['goalSec']),
@@ -257,6 +556,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       'name': serializer.toJson<String>(name),
       'colorHex': serializer.toJson<String>(colorHex),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'categoryId': serializer.toJson<String?>(categoryId),
       'tag': serializer.toJson<String?>(tag),
       'plannedTimeSec': serializer.toJson<int>(plannedTimeSec),
       'goalSec': serializer.toJson<int>(goalSec),
@@ -270,6 +570,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           String? name,
           String? colorHex,
           bool? isArchived,
+          Value<String?> categoryId = const Value.absent(),
           Value<String?> tag = const Value.absent(),
           int? plannedTimeSec,
           int? goalSec,
@@ -280,6 +581,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
         name: name ?? this.name,
         colorHex: colorHex ?? this.colorHex,
         isArchived: isArchived ?? this.isArchived,
+        categoryId: categoryId.present ? categoryId.value : this.categoryId,
         tag: tag.present ? tag.value : this.tag,
         plannedTimeSec: plannedTimeSec ?? this.plannedTimeSec,
         goalSec: goalSec ?? this.goalSec,
@@ -293,6 +595,8 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
       isArchived:
           data.isArchived.present ? data.isArchived.value : this.isArchived,
+      categoryId:
+          data.categoryId.present ? data.categoryId.value : this.categoryId,
       tag: data.tag.present ? data.tag.value : this.tag,
       plannedTimeSec: data.plannedTimeSec.present
           ? data.plannedTimeSec.value
@@ -310,6 +614,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           ..write('name: $name, ')
           ..write('colorHex: $colorHex, ')
           ..write('isArchived: $isArchived, ')
+          ..write('categoryId: $categoryId, ')
           ..write('tag: $tag, ')
           ..write('plannedTimeSec: $plannedTimeSec, ')
           ..write('goalSec: $goalSec, ')
@@ -320,8 +625,8 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, colorHex, isArchived, tag,
-      plannedTimeSec, goalSec, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, name, colorHex, isArchived, categoryId,
+      tag, plannedTimeSec, goalSec, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -330,6 +635,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           other.name == this.name &&
           other.colorHex == this.colorHex &&
           other.isArchived == this.isArchived &&
+          other.categoryId == this.categoryId &&
           other.tag == this.tag &&
           other.plannedTimeSec == this.plannedTimeSec &&
           other.goalSec == this.goalSec &&
@@ -342,6 +648,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
   final Value<String> name;
   final Value<String> colorHex;
   final Value<bool> isArchived;
+  final Value<String?> categoryId;
   final Value<String?> tag;
   final Value<int> plannedTimeSec;
   final Value<int> goalSec;
@@ -353,6 +660,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     this.name = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.categoryId = const Value.absent(),
     this.tag = const Value.absent(),
     this.plannedTimeSec = const Value.absent(),
     this.goalSec = const Value.absent(),
@@ -365,6 +673,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     required String name,
     this.colorHex = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.categoryId = const Value.absent(),
     this.tag = const Value.absent(),
     this.plannedTimeSec = const Value.absent(),
     this.goalSec = const Value.absent(),
@@ -380,6 +689,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Expression<String>? name,
     Expression<String>? colorHex,
     Expression<bool>? isArchived,
+    Expression<String>? categoryId,
     Expression<String>? tag,
     Expression<int>? plannedTimeSec,
     Expression<int>? goalSec,
@@ -392,6 +702,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       if (name != null) 'name': name,
       if (colorHex != null) 'color_hex': colorHex,
       if (isArchived != null) 'is_archived': isArchived,
+      if (categoryId != null) 'category_id': categoryId,
       if (tag != null) 'tag': tag,
       if (plannedTimeSec != null) 'planned_time_sec': plannedTimeSec,
       if (goalSec != null) 'goal_sec': goalSec,
@@ -406,6 +717,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       Value<String>? name,
       Value<String>? colorHex,
       Value<bool>? isArchived,
+      Value<String?>? categoryId,
       Value<String?>? tag,
       Value<int>? plannedTimeSec,
       Value<int>? goalSec,
@@ -417,6 +729,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       name: name ?? this.name,
       colorHex: colorHex ?? this.colorHex,
       isArchived: isArchived ?? this.isArchived,
+      categoryId: categoryId ?? this.categoryId,
       tag: tag ?? this.tag,
       plannedTimeSec: plannedTimeSec ?? this.plannedTimeSec,
       goalSec: goalSec ?? this.goalSec,
@@ -440,6 +753,9 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     }
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
     }
     if (tag.present) {
       map['tag'] = Variable<String>(tag.value);
@@ -469,6 +785,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
           ..write('name: $name, ')
           ..write('colorHex: $colorHex, ')
           ..write('isArchived: $isArchived, ')
+          ..write('categoryId: $categoryId, ')
           ..write('tag: $tag, ')
           ..write('plannedTimeSec: $plannedTimeSec, ')
           ..write('goalSec: $goalSec, ')
@@ -909,8 +1226,11 @@ class SessionsTableCompanion extends UpdateCompanion<SessionsTableData> {
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(e);
   $AppDbManager get managers => $AppDbManager(this);
+  late final $CategoriesTableTable categoriesTable =
+      $CategoriesTableTable(this);
   late final $TasksTableTable tasksTable = $TasksTableTable(this);
   late final $SessionsTableTable sessionsTable = $SessionsTableTable(this);
+  late final CategoriesDao categoriesDao = CategoriesDao(this as AppDb);
   late final TasksDao tasksDao = TasksDao(this as AppDb);
   late final SessionsDao sessionsDao = SessionsDao(this as AppDb);
   @override
@@ -918,14 +1238,256 @@ abstract class _$AppDb extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [tasksTable, sessionsTable];
+      [categoriesTable, tasksTable, sessionsTable];
 }
 
+typedef $$CategoriesTableTableCreateCompanionBuilder = CategoriesTableCompanion
+    Function({
+  required String id,
+  required String name,
+  Value<String> colorHex,
+  required int createdAt,
+  Value<int> rowid,
+});
+typedef $$CategoriesTableTableUpdateCompanionBuilder = CategoriesTableCompanion
+    Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> colorHex,
+  Value<int> createdAt,
+  Value<int> rowid,
+});
+
+final class $$CategoriesTableTableReferences extends BaseReferences<_$AppDb,
+    $CategoriesTableTable, CategoriesTableData> {
+  $$CategoriesTableTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TasksTableTable, List<TasksTableData>>
+      _tasksTableRefsTable(_$AppDb db) =>
+          MultiTypedResultKey.fromTable(db.tasksTable,
+              aliasName: $_aliasNameGenerator(
+                  db.categoriesTable.id, db.tasksTable.categoryId));
+
+  $$TasksTableTableProcessedTableManager get tasksTableRefs {
+    final manager = $$TasksTableTableTableManager($_db, $_db.tasksTable)
+        .filter((f) => f.categoryId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tasksTableRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$CategoriesTableTableFilterComposer
+    extends Composer<_$AppDb, $CategoriesTableTable> {
+  $$CategoriesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get colorHex => $composableBuilder(
+      column: $table.colorHex, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> tasksTableRefs(
+      Expression<bool> Function($$TasksTableTableFilterComposer f) f) {
+    final $$TasksTableTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tasksTable,
+        getReferencedColumn: (t) => t.categoryId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TasksTableTableFilterComposer(
+              $db: $db,
+              $table: $db.tasksTable,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$CategoriesTableTableOrderingComposer
+    extends Composer<_$AppDb, $CategoriesTableTable> {
+  $$CategoriesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get colorHex => $composableBuilder(
+      column: $table.colorHex, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$CategoriesTableTableAnnotationComposer
+    extends Composer<_$AppDb, $CategoriesTableTable> {
+  $$CategoriesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get colorHex =>
+      $composableBuilder(column: $table.colorHex, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> tasksTableRefs<T extends Object>(
+      Expression<T> Function($$TasksTableTableAnnotationComposer a) f) {
+    final $$TasksTableTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.tasksTable,
+        getReferencedColumn: (t) => t.categoryId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TasksTableTableAnnotationComposer(
+              $db: $db,
+              $table: $db.tasksTable,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$CategoriesTableTableTableManager extends RootTableManager<
+    _$AppDb,
+    $CategoriesTableTable,
+    CategoriesTableData,
+    $$CategoriesTableTableFilterComposer,
+    $$CategoriesTableTableOrderingComposer,
+    $$CategoriesTableTableAnnotationComposer,
+    $$CategoriesTableTableCreateCompanionBuilder,
+    $$CategoriesTableTableUpdateCompanionBuilder,
+    (CategoriesTableData, $$CategoriesTableTableReferences),
+    CategoriesTableData,
+    PrefetchHooks Function({bool tasksTableRefs})> {
+  $$CategoriesTableTableTableManager(_$AppDb db, $CategoriesTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoriesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CategoriesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CategoriesTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String> colorHex = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CategoriesTableCompanion(
+            id: id,
+            name: name,
+            colorHex: colorHex,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            Value<String> colorHex = const Value.absent(),
+            required int createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CategoriesTableCompanion.insert(
+            id: id,
+            name: name,
+            colorHex: colorHex,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$CategoriesTableTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({tasksTableRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (tasksTableRefs) db.tasksTable],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (tasksTableRefs)
+                    await $_getPrefetchedData<CategoriesTableData,
+                            $CategoriesTableTable, TasksTableData>(
+                        currentTable: table,
+                        referencedTable: $$CategoriesTableTableReferences
+                            ._tasksTableRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$CategoriesTableTableReferences(db, table, p0)
+                                .tasksTableRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.categoryId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$CategoriesTableTableProcessedTableManager = ProcessedTableManager<
+    _$AppDb,
+    $CategoriesTableTable,
+    CategoriesTableData,
+    $$CategoriesTableTableFilterComposer,
+    $$CategoriesTableTableOrderingComposer,
+    $$CategoriesTableTableAnnotationComposer,
+    $$CategoriesTableTableCreateCompanionBuilder,
+    $$CategoriesTableTableUpdateCompanionBuilder,
+    (CategoriesTableData, $$CategoriesTableTableReferences),
+    CategoriesTableData,
+    PrefetchHooks Function({bool tasksTableRefs})>;
 typedef $$TasksTableTableCreateCompanionBuilder = TasksTableCompanion Function({
   required String id,
   required String name,
   Value<String> colorHex,
   Value<bool> isArchived,
+  Value<String?> categoryId,
   Value<String?> tag,
   Value<int> plannedTimeSec,
   Value<int> goalSec,
@@ -938,6 +1500,7 @@ typedef $$TasksTableTableUpdateCompanionBuilder = TasksTableCompanion Function({
   Value<String> name,
   Value<String> colorHex,
   Value<bool> isArchived,
+  Value<String?> categoryId,
   Value<String?> tag,
   Value<int> plannedTimeSec,
   Value<int> goalSec,
@@ -945,6 +1508,27 @@ typedef $$TasksTableTableUpdateCompanionBuilder = TasksTableCompanion Function({
   Value<int> updatedAt,
   Value<int> rowid,
 });
+
+final class $$TasksTableTableReferences
+    extends BaseReferences<_$AppDb, $TasksTableTable, TasksTableData> {
+  $$TasksTableTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CategoriesTableTable _categoryIdTable(_$AppDb db) =>
+      db.categoriesTable.createAlias($_aliasNameGenerator(
+          db.tasksTable.categoryId, db.categoriesTable.id));
+
+  $$CategoriesTableTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<String>('category_id');
+    if ($_column == null) return null;
+    final manager =
+        $$CategoriesTableTableTableManager($_db, $_db.categoriesTable)
+            .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
 
 class $$TasksTableTableFilterComposer
     extends Composer<_$AppDb, $TasksTableTable> {
@@ -982,6 +1566,26 @@ class $$TasksTableTableFilterComposer
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  $$CategoriesTableTableFilterComposer get categoryId {
+    final $$CategoriesTableTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.categoryId,
+        referencedTable: $db.categoriesTable,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CategoriesTableTableFilterComposer(
+              $db: $db,
+              $table: $db.categoriesTable,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$TasksTableTableOrderingComposer
@@ -1020,6 +1624,26 @@ class $$TasksTableTableOrderingComposer
 
   ColumnOrderings<int> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  $$CategoriesTableTableOrderingComposer get categoryId {
+    final $$CategoriesTableTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.categoryId,
+        referencedTable: $db.categoriesTable,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CategoriesTableTableOrderingComposer(
+              $db: $db,
+              $table: $db.categoriesTable,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$TasksTableTableAnnotationComposer
@@ -1057,6 +1681,26 @@ class $$TasksTableTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$CategoriesTableTableAnnotationComposer get categoryId {
+    final $$CategoriesTableTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.categoryId,
+        referencedTable: $db.categoriesTable,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$CategoriesTableTableAnnotationComposer(
+              $db: $db,
+              $table: $db.categoriesTable,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
 }
 
 class $$TasksTableTableTableManager extends RootTableManager<
@@ -1068,9 +1712,9 @@ class $$TasksTableTableTableManager extends RootTableManager<
     $$TasksTableTableAnnotationComposer,
     $$TasksTableTableCreateCompanionBuilder,
     $$TasksTableTableUpdateCompanionBuilder,
-    (TasksTableData, BaseReferences<_$AppDb, $TasksTableTable, TasksTableData>),
+    (TasksTableData, $$TasksTableTableReferences),
     TasksTableData,
-    PrefetchHooks Function()> {
+    PrefetchHooks Function({bool categoryId})> {
   $$TasksTableTableTableManager(_$AppDb db, $TasksTableTable table)
       : super(TableManagerState(
           db: db,
@@ -1086,6 +1730,7 @@ class $$TasksTableTableTableManager extends RootTableManager<
             Value<String> name = const Value.absent(),
             Value<String> colorHex = const Value.absent(),
             Value<bool> isArchived = const Value.absent(),
+            Value<String?> categoryId = const Value.absent(),
             Value<String?> tag = const Value.absent(),
             Value<int> plannedTimeSec = const Value.absent(),
             Value<int> goalSec = const Value.absent(),
@@ -1098,6 +1743,7 @@ class $$TasksTableTableTableManager extends RootTableManager<
             name: name,
             colorHex: colorHex,
             isArchived: isArchived,
+            categoryId: categoryId,
             tag: tag,
             plannedTimeSec: plannedTimeSec,
             goalSec: goalSec,
@@ -1110,6 +1756,7 @@ class $$TasksTableTableTableManager extends RootTableManager<
             required String name,
             Value<String> colorHex = const Value.absent(),
             Value<bool> isArchived = const Value.absent(),
+            Value<String?> categoryId = const Value.absent(),
             Value<String?> tag = const Value.absent(),
             Value<int> plannedTimeSec = const Value.absent(),
             Value<int> goalSec = const Value.absent(),
@@ -1122,6 +1769,7 @@ class $$TasksTableTableTableManager extends RootTableManager<
             name: name,
             colorHex: colorHex,
             isArchived: isArchived,
+            categoryId: categoryId,
             tag: tag,
             plannedTimeSec: plannedTimeSec,
             goalSec: goalSec,
@@ -1130,9 +1778,46 @@ class $$TasksTableTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map((e) => (
+                    e.readTable(table),
+                    $$TasksTableTableReferences(db, table, e)
+                  ))
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({categoryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (categoryId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.categoryId,
+                    referencedTable:
+                        $$TasksTableTableReferences._categoryIdTable(db),
+                    referencedColumn:
+                        $$TasksTableTableReferences._categoryIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ));
 }
 
@@ -1145,9 +1830,9 @@ typedef $$TasksTableTableProcessedTableManager = ProcessedTableManager<
     $$TasksTableTableAnnotationComposer,
     $$TasksTableTableCreateCompanionBuilder,
     $$TasksTableTableUpdateCompanionBuilder,
-    (TasksTableData, BaseReferences<_$AppDb, $TasksTableTable, TasksTableData>),
+    (TasksTableData, $$TasksTableTableReferences),
     TasksTableData,
-    PrefetchHooks Function()>;
+    PrefetchHooks Function({bool categoryId})>;
 typedef $$SessionsTableTableCreateCompanionBuilder = SessionsTableCompanion
     Function({
   required String id,
@@ -1370,6 +2055,8 @@ typedef $$SessionsTableTableProcessedTableManager = ProcessedTableManager<
 class $AppDbManager {
   final _$AppDb _db;
   $AppDbManager(this._db);
+  $$CategoriesTableTableTableManager get categoriesTable =>
+      $$CategoriesTableTableTableManager(_db, _db.categoriesTable);
   $$TasksTableTableTableManager get tasksTable =>
       $$TasksTableTableTableManager(_db, _db.tasksTable);
   $$SessionsTableTableTableManager get sessionsTable =>

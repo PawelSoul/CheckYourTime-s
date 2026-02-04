@@ -102,7 +102,7 @@ class TasksListPage extends ConsumerWidget {
                       ],
                     ),
                   )
-                : _TasksOfCategory(categoryTag: selectedCategory),
+                : _TasksOfCategory(categoryId: selectedCategory!),
           ),
         ],
       ),
