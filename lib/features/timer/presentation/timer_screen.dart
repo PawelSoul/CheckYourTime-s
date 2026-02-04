@@ -7,27 +7,35 @@ import 'widgets/start_task_sheet.dart';
 class TimerScreen extends ConsumerWidget {
   const TimerScreen({super.key});
 
+  static bool _isHandlingStop = false;
+
   static Future<void> _onStop(
     BuildContext context,
     WidgetRef ref,
     TimerController controller,
   ) async {
-    final result = await controller.stop();
-    if (!context.mounted || result == null) return;
+    if (_isHandlingStop) return;
+    _isHandlingStop = true;
+    try {
+      final result = await controller.stop();
+      if (!context.mounted || result == null) return;
 
-    final name = await _showNameDialog(context, result.duration);
-    if (!context.mounted) return;
+      final name = await _showNameDialog(context, result.duration);
+      if (!context.mounted) return;
 
-    if (name != null && name.trim().isNotEmpty) {
-      await controller.setTaskName(taskId: result.taskId, name: name.trim());
-    }
+      if (name != null && name.trim().isNotEmpty) {
+        await controller.setTaskName(taskId: result.taskId, name: name.trim());
+      }
 
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sesja zapisana. Pojawi się w kalendarzu.'),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sesja zapisana. Pojawi się w kalendarzu.'),
+          ),
+        );
+      }
+    } finally {
+      _isHandlingStop = false;
     }
   }
 
@@ -40,44 +48,53 @@ class TimerScreen extends ConsumerWidget {
     try {
       return await showDialog<String>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Nazwa zadania'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Czas sesji: $durationStr',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Nazwa',
-                  hintText: 'np. Nauka / Gotowanie',
-                  border: OutlineInputBorder(),
+        barrierDismissible: false,
+        builder: (ctx) {
+          var alreadyPopped = false;
+          void popWith(String? value) {
+            if (alreadyPopped) return;
+            alreadyPopped = true;
+            Navigator.of(ctx).pop(value);
+          }
+          return AlertDialog(
+            title: const Text('Nazwa zadania'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Czas sesji: $durationStr',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                onSubmitted: (v) =>
-                    Navigator.of(ctx).pop(v.trim().isEmpty ? null : v),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Nazwa',
+                    hintText: 'np. Nauka / Gotowanie',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (v) =>
+                      popWith(v.trim().isEmpty ? null : v),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => popWith(null),
+                child: const Text('Anuluj'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final v = controller.text.trim();
+                  popWith(v.isEmpty ? null : v);
+                },
+                child: const Text('Zapisz'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Anuluj'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final v = controller.text.trim();
-                Navigator.of(ctx).pop(v.isEmpty ? null : v);
-              },
-              child: const Text('Zapisz'),
-            ),
-          ],
-        ),
+          );
+        },
       );
     } finally {
       controller.dispose();
