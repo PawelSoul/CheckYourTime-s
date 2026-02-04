@@ -181,7 +181,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
   final String colorHex;
   final bool isArchived;
 
-  /// v3: opcjonalny tag (np. "praca", "zdrowie")
+  /// Kategoria = tag (np. "Matematyka", "Siłownia"). Zadania w tej samej kategorii mają ten sam tag.
   final String? tag;
 
   /// v3: planowany czas dzienny/na task (sekundy) - do progressu
