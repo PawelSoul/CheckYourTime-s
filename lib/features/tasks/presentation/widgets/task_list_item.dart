@@ -100,13 +100,16 @@ class TaskListItem extends ConsumerWidget {
     } else if (action == 'delete') {
       final confirmed = await _showDeleteConfirmDialog(context);
       if (confirmed == true && context.mounted) {
-        await sessionsDao.deleteSessionsByTaskId(task.id);
-        await tasksDao.deleteTask(task.id);
-        if (context.mounted) {
+        final taskId = task.id;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!context.mounted) return;
+          await sessionsDao.deleteSessionsByTaskId(taskId);
+          await tasksDao.deleteTask(taskId);
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Zadanie usunięte')),
           );
-        }
+        });
       }
     }
   }
@@ -148,13 +151,17 @@ class TaskListItem extends ConsumerWidget {
         ),
       );
       if (name != null && name.isNotEmpty) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        await tasksDao.renameTask(task.id, name: name, nowMs: nowMs);
-        if (context.mounted) {
+        final taskId = task.id;
+        final nameToSave = name;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!context.mounted) return;
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          await tasksDao.renameTask(taskId, name: nameToSave, nowMs: nowMs);
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Nazwa zapisana')),
           );
-        }
+        });
       }
     } finally {
       controller.dispose();

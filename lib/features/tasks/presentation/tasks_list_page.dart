@@ -302,12 +302,17 @@ class TasksListPage extends ConsumerWidget {
         ),
       );
       if (name != null && name.isNotEmpty) {
-        await categoriesDao.renameCategory(category.id, name: name);
-        if (context.mounted) {
+        final categoryId = category.id;
+        final nameToSave = name;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!context.mounted) return;
+          final dao = ref.read(categoriesDaoProvider);
+          await dao.renameCategory(categoryId, name: nameToSave);
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Kategoria zapisana')),
           );
-        }
+        });
       }
     } finally {
       controller.dispose();
@@ -344,17 +349,20 @@ class TasksListPage extends ConsumerWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    final tasksDao = ref.read(tasksDaoProvider);
-    final categoriesDao = ref.read(categoriesDaoProvider);
-    await tasksDao.clearCategoryIdForCategory(category.id);
-    await categoriesDao.deleteCategory(category.id);
-    ref.read(selectedCategoryProvider.notifier).state = null;
-
-    if (context.mounted) {
+    final categoryId = category.id;
+    final refCopy = ref;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!context.mounted) return;
+      final tasksDao = refCopy.read(tasksDaoProvider);
+      final categoriesDao = refCopy.read(categoriesDaoProvider);
+      await tasksDao.clearCategoryIdForCategory(categoryId);
+      await categoriesDao.deleteCategory(categoryId);
+      refCopy.read(selectedCategoryProvider.notifier).state = null;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kategoria usunięta')),
       );
-    }
+    });
   }
 }
 
