@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import 'data/tasks_repository.dart';
@@ -15,28 +16,15 @@ final tasksStreamProvider = StreamProvider((ref) {
   return repo.watchAll();
 });
 
-/// Lista nazw kategorii (unikalne tagi z zadań), posortowana.
-final categoriesStreamProvider = StreamProvider<List<String>>((ref) {
-  final stream = ref.watch(tasksStreamProvider);
-  return stream.when(
-    data: (tasks) {
-      final tags = tasks
-          .map((t) => t.tag)
-          .where((tag) => tag != null && tag.trim().isNotEmpty)
-          .map((e) => e!.trim())
-          .toSet()
-          .toList()
-        ..sort();
-      return Stream.value(tags);
-    },
-    loading: () => Stream.value([]),
-    error: (_, __) => Stream.value([]),
-  );
+/// Lista kategorii z tabeli categories.
+final categoriesStreamProvider = StreamProvider<List<CategoryRow>>((ref) {
+  final dao = ref.watch(categoriesDaoProvider);
+  return dao.watchAll();
 });
 
-/// Stream zadań dla danej kategorii (po tagu).
+/// Stream zadań dla danej kategorii (po categoryId).
 final tasksByCategoryProvider =
-    StreamProvider.autoDispose.family<List<TaskRow>, String>((ref, categoryTag) {
+    StreamProvider.autoDispose.family<List<TaskRow>, String>((ref, categoryId) {
   final dao = ref.watch(tasksDaoProvider);
-  return dao.watchByTag(categoryTag);
+  return dao.watchByCategoryId(categoryId);
 });

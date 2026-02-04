@@ -6,24 +6,26 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'tables/categories_table.dart';
 import 'tables/sessions_table.dart';
 import 'tables/tasks_table.dart';
 
+import 'daos/categories_dao.dart';
 import 'daos/sessions_dao.dart';
 import 'daos/tasks_dao.dart';
 
 part 'app_db.g.dart';
 
 @DriftDatabase(
-  tables: [TasksTable, SessionsTable],
-  daos: [TasksDao, SessionsDao],
+  tables: [CategoriesTable, TasksTable, SessionsTable],
+  daos: [CategoriesDao, TasksDao, SessionsDao],
 )
 class AppDb extends _$AppDb {
   AppDb() : super(_openConnection());
 
-  /// v1 -> v2 -> v3
+  /// v1 -> v2 -> v3 -> v4
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +46,12 @@ class AppDb extends _$AppDb {
         await m.addColumn(tasksTable, tasksTable.tag);
         await m.addColumn(tasksTable, tasksTable.plannedTimeSec);
         await m.addColumn(tasksTable, tasksTable.goalSec);
+      }
+
+      // v4: tabela kategorii, tasks.categoryId
+      if (from < 4) {
+        await m.createTable(categoriesTable);
+        await m.addColumn(tasksTable, tasksTable.categoryId);
       }
     },
     beforeOpen: (details) async {

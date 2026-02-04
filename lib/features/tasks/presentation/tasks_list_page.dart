@@ -50,23 +50,23 @@ class TasksListPage extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: categories.length,
                     itemBuilder: (context, index) {
-                      final name = categories[index];
-                      final isSelected = selectedCategory == name;
+                      final category = categories[index];
+                      final isSelected = selectedCategory == category.id;
                       return ListTile(
                         selected: isSelected,
                         leading: CircleAvatar(
                           radius: 18,
                           child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
                             style: const TextStyle(color: Colors.white, fontSize: 16),
                           ),
                         ),
                         title: Text(
-                          name,
+                          category.name,
                           style: const TextStyle(fontSize: 14),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        onTap: () => ref.read(selectedCategoryProvider.notifier).state = name,
+                        onTap: () => ref.read(selectedCategoryProvider.notifier).state = category.id,
                       );
                     },
                   );
@@ -120,13 +120,13 @@ class TasksListPage extends ConsumerWidget {
 }
 
 class _TasksOfCategory extends ConsumerWidget {
-  const _TasksOfCategory({required this.categoryTag});
+  const _TasksOfCategory({required this.categoryId});
 
-  final String categoryTag;
+  final String categoryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasksAsync = ref.watch(tasksByCategoryProvider(categoryTag));
+    final tasksAsync = ref.watch(tasksByCategoryProvider(categoryId));
 
     return tasksAsync.when(
       data: (tasks) {

@@ -65,6 +65,33 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     return rows.length;
   }
 
+  /// Zadania w danej kategorii (po categoryId).
+  Future<List<TaskRow>> getByCategoryId(String categoryId, {bool includeArchived = false}) async {
+    final q = select(tasksTable)
+      ..where((t) =>
+          t.categoryId.equals(categoryId) &
+          (includeArchived ? t.id.isNotNull() : t.isArchived.equals(false)))
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]);
+    return q.get();
+  }
+
+  Stream<List<TaskRow>> watchByCategoryId(String categoryId, {bool includeArchived = false}) {
+    final q = select(tasksTable)
+      ..where((t) =>
+          t.categoryId.equals(categoryId) &
+          (includeArchived ? t.id.isNotNull() : t.isArchived.equals(false)))
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]);
+    return q.watch();
+  }
+
+  /// Ile zadań w kategorii [categoryId] ma nazwę zaczynającą się od [namePrefix].
+  Future<int> countByCategoryIdAndNamePrefix(String categoryId, String namePrefix) async {
+    final rows = await (select(tasksTable)
+          ..where((t) => t.categoryId.equals(categoryId) & t.name.like('$namePrefix%')))
+        .get();
+    return rows.length;
+  }
+
   // --- UPDATE ---
   Future<void> archiveTask(String id, {required bool archived, required int nowMs}) async {
     await (update(tasksTable)..where((t) => t.id.equals(id))).write(

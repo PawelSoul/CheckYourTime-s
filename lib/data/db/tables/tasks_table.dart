@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'categories_table.dart';
+
 class TasksTable extends Table {
   TextColumn get id => text()(); // uuid
   TextColumn get name => text()();
@@ -7,7 +9,10 @@ class TasksTable extends Table {
 
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
 
-  /// Kategoria = tag (np. "Matematyka", "Siłownia"). Zadania w tej samej kategorii mają ten sam tag.
+  /// v4: kategoria – każdy task należy do jednej kategorii (nullable przy migracji)
+  TextColumn get categoryId => text().nullable().references(CategoriesTable, #id)();
+
+  /// v3: tag (zachowany dla kompatybilności, może być null)
   TextColumn get tag => text().nullable()();
 
   /// v3: planowany czas dzienny/na task (sekundy) - do progressu

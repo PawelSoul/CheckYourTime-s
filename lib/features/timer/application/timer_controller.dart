@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/app_db.dart';
+import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
@@ -59,6 +60,7 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     return TimerState.initial;
   }
 
+  CategoriesDao get _categoriesDao => ref.read(categoriesDaoProvider);
   TasksDao get _tasksDao => ref.read(tasksDaoProvider);
   SessionsDao get _sessionsDao => ref.read(sessionsDaoProvider);
 
@@ -71,14 +73,17 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     });
   }
 
-  /// Start odliczania dla danej kategorii. Tworzy task z nazwą "Kategoria YYYY-MM-DD".
-  Future<void> startWithCategory(String categoryName) async {
+  /// Start odliczania dla danej kategorii (po id). Tworzy task z nazwą "NazwaKategorii YYYY-MM-DD".
+  Future<void> startWithCategory(String categoryId) async {
     if (state.isRunning) return;
+
+    final category = await _categoriesDao.getById(categoryId);
+    if (category == null) return;
 
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
     final dateStr = _formatDate(now);
-    final taskName = '$categoryName $dateStr';
+    final taskName = '${category.name} $dateStr';
     final taskId = _newId();
     final sessionId = _newId();
 
@@ -88,7 +93,7 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
         name: taskName,
         createdAt: nowMs,
         updatedAt: nowMs,
-        tag: Value(categoryName),
+        categoryId: Value(categoryId),
       ),
     );
 
@@ -121,22 +126,20 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     return '$y-$m-$day';
   }
 
-  /// Tworzy nową kategorię (task z name == tag). Zwraca nazwę kategorii.
+  /// Tworzy nową kategorię w tabeli categories. Zwraca id kategorii.
   Future<String> createCategory(String name) async {
     final trimmed = name.trim();
-    if (trimmed.isEmpty) return trimmed;
+    if (trimmed.isEmpty) return '';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final taskId = _newId();
-    await _tasksDao.upsertTask(
-      TasksTableCompanion.insert(
-        id: taskId,
+    final categoryId = _newId();
+    await _categoriesDao.insertCategory(
+      CategoriesTableCompanion.insert(
+        id: categoryId,
         name: trimmed,
         createdAt: nowMs,
-        updatedAt: nowMs,
-        tag: Value(trimmed),
       ),
     );
-    return trimmed;
+    return categoryId;
   }
 
   Future<void> pause() async {
@@ -168,10 +171,10 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     final nowMs = now.millisecondsSinceEpoch;
 
     final task = await _tasksDao.getById(taskId);
-    if (task != null) {
+    if (task != null && task.categoryId != null) {
       final baseName = task.name;
-      final categoryTag = task.tag ?? '';
-      final count = await _tasksDao.countByTagAndNamePrefix(categoryTag, baseName);
+      final categoryId = task.categoryId!;
+      final count = await _tasksDao.countByCategoryIdAndNamePrefix(categoryId, baseName);
       if (count > 1) {
         final newName = '$baseName [#${count - 1}]';
         await _tasksDao.renameTask(taskId, name: newName, nowMs: nowMs);

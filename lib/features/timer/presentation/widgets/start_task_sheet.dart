@@ -58,17 +58,17 @@ class _StartTaskSheetContent extends ConsumerWidget {
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  for (final categoryName in categories)
+                  for (final category in categories)
                     ListTile(
                       leading: CircleAvatar(
                         child: Text(
-                          categoryName.isNotEmpty ? categoryName[0].toUpperCase() : '?',
+                          category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
-                      title: Text(categoryName),
+                      title: Text(category.name),
                       onTap: () async {
-                        await timerNotifier.startWithCategory(categoryName);
+                        await timerNotifier.startWithCategory(category.id);
                         if (!context.mounted) return;
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!context.mounted) return;
@@ -172,12 +172,12 @@ class _StartTaskSheetContent extends ConsumerWidget {
     TimerController timerNotifier,
   ) async {
     if (name.isEmpty) return;
-    final categoryName = await timerNotifier.createCategory(name);
-    if (categoryName.isEmpty || !formContext.mounted) return;
+    final categoryId = await timerNotifier.createCategory(name);
+    if (categoryId.isEmpty || !formContext.mounted) return;
     Navigator.of(formContext).pop();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await timerNotifier.startWithCategory(categoryName);
+      await timerNotifier.startWithCategory(categoryId);
       if (!mainSheetContext.mounted) return;
       Navigator.of(mainSheetContext).pop();
     });

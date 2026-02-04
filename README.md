@@ -2,6 +2,14 @@
 
 A new Flutter project.
 
+## Po zmianach w bazie (Drift)
+
+Jeśli zmieniałeś tabele w `lib/data/db/`, wygeneruj kod:
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
