@@ -3,10 +3,9 @@ import 'dart:async';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/db/app_db.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
-import '../../../data/db/tables/sessions_table.dart';
-import '../../../data/db/tables/tasks_table.dart';
 import '../../../providers/app_db_provider.dart';
 
 class TimerState {
@@ -160,6 +159,6 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     required String name,
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await _tasksDao.renameTask(id: taskId, name: name, nowMs: nowMs);
+    await _tasksDao.renameTask(taskId, name: name, nowMs: nowMs);
   }
 }
