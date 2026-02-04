@@ -73,7 +73,6 @@ class _StartTaskSheetContent extends ConsumerWidget {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!context.mounted) return;
                           onTaskSelected();
-                          Navigator.of(context).pop();
                         });
                       },
                     ),
