@@ -20,26 +20,35 @@ class TimerScreen extends ConsumerWidget {
       final name = await showDialog<String>(
         context: context,
         useRootNavigator: true,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Nazwa taska'),
-          content: TextField(
-            controller: textController,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(hintText: 'np. Nauka, Siłownia...'),
-            onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('Anuluj'),
+        builder: (ctx) {
+          void closeDialog(String? value) {
+            FocusScope.of(ctx).unfocus();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (ctx.mounted) Navigator.of(ctx).pop(value);
+            });
+          }
+
+          return AlertDialog(
+            title: const Text('Nazwa taska'),
+            content: TextField(
+              controller: textController,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(hintText: 'np. Nauka, Siłownia...'),
+              onSubmitted: (v) => closeDialog(v.trim().isEmpty ? null : v.trim()),
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(textController.text.trim()),
-              child: const Text('Zapisz'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => closeDialog(null),
+                child: const Text('Anuluj'),
+              ),
+              ElevatedButton(
+                onPressed: () => closeDialog(textController.text.trim()),
+                child: const Text('Zapisz'),
+              ),
+            ],
+          );
+        },
       );
 
       final cleaned = (name ?? '').trim();
