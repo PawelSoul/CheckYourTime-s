@@ -20,32 +20,29 @@ class TimerScreen extends ConsumerWidget {
       final result = await controller.stop();
       if (!context.mounted || result == null) return;
 
-      final name = await _showNameDialog(
-        context,
-        result.duration,
-        result.taskId,
-        controller,
-      );
+      final name = await _showNameDialog(context, result.duration);
       if (!context.mounted) return;
 
-      if (name != null && name.trim().isNotEmpty && context.mounted) {
+      final taskId = result.taskId;
+      final nameToSave = name?.trim();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!context.mounted) return;
+        if (nameToSave != null && nameToSave.isNotEmpty) {
+          await controller.setTaskName(taskId: taskId, name: nameToSave);
+        }
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Sesja zapisana. Pojawi się w kalendarzu.'),
           ),
         );
-      }
+      });
     } finally {
       _isHandlingStop = false;
     }
   }
 
-  static Future<String?> _showNameDialog(
-    BuildContext context,
-    Duration duration,
-    String taskId,
-    TimerController timerController,
-  ) async {
+  static Future<String?> _showNameDialog(BuildContext context, Duration duration) async {
     final textController = TextEditingController();
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
@@ -61,17 +58,6 @@ class TimerScreen extends ConsumerWidget {
             if (alreadyPopped) return;
             alreadyPopped = true;
             Navigator.of(ctx).pop(value);
-          }
-          var isSaving = false;
-          Future<void> saveAndPop() async {
-            if (alreadyPopped || isSaving) return;
-            isSaving = true;
-            final name = textController.text.trim();
-            if (name.isNotEmpty) {
-              await timerController.setTaskName(taskId: taskId, name: name);
-            }
-            if (alreadyPopped) return;
-            popWith(name.isEmpty ? null : name);
           }
           return AlertDialog(
             title: const Text('Nazwa zadania'),
@@ -92,7 +78,8 @@ class TimerScreen extends ConsumerWidget {
                     hintText: 'np. Nauka / Gotowanie',
                     border: OutlineInputBorder(),
                   ),
-                  onSubmitted: (_) => saveAndPop(),
+                  onSubmitted: (v) =>
+                      popWith(v.trim().isEmpty ? null : v.trim()),
                 ),
               ],
             ),
@@ -102,7 +89,10 @@ class TimerScreen extends ConsumerWidget {
                 child: const Text('Anuluj'),
               ),
               FilledButton(
-                onPressed: () => saveAndPop(),
+                onPressed: () {
+                  final v = textController.text.trim();
+                  popWith(v.isEmpty ? null : v);
+                },
                 child: const Text('Zapisz'),
               ),
             ],
