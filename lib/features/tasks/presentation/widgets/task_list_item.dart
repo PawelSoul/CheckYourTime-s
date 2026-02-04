@@ -9,9 +9,13 @@ class TaskListItem extends ConsumerWidget {
   const TaskListItem({
     super.key,
     required this.task,
+    required this.scaffoldContext,
   });
 
   final TaskRow task;
+  /// Kontekst ze Scaffold (strona) – używany do dialogów i SnackBar,
+  /// żeby uniknąć błędu _dependents.isEmpty po przebudowie listy.
+  final BuildContext scaffoldContext;
 
   static String _formatDateTime(int ms) {
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
@@ -42,7 +46,7 @@ class TaskListItem extends ConsumerWidget {
         style: Theme.of(context).textTheme.bodySmall,
       ),
       onTap: () => _showTaskOptionsSheet(
-        context,
+        scaffoldContext,
         ref,
         task,
         tasksDao,
@@ -52,14 +56,14 @@ class TaskListItem extends ConsumerWidget {
   }
 
   static Future<void> _showTaskOptionsSheet(
-    BuildContext context,
+    BuildContext scaffoldContext,
     WidgetRef ref,
     TaskRow task,
     TasksDao tasksDao,
     SessionsDao sessionsDao,
   ) async {
     final action = await showModalBottomSheet<String>(
-      context: context,
+      context: scaffoldContext,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -93,20 +97,20 @@ class TaskListItem extends ConsumerWidget {
       ),
     );
 
-    if (!context.mounted || action == null) return;
+    if (!scaffoldContext.mounted || action == null) return;
 
     if (action == 'edit') {
-      await _showEditNameDialog(context, ref, task, tasksDao);
+      await _showEditNameDialog(scaffoldContext, ref, task, tasksDao);
     } else if (action == 'delete') {
-      final confirmed = await _showDeleteConfirmDialog(context);
-      if (confirmed == true && context.mounted) {
+      final confirmed = await _showDeleteConfirmDialog(scaffoldContext);
+      if (confirmed == true && scaffoldContext.mounted) {
         final taskId = task.id;
         WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!context.mounted) return;
+          if (!scaffoldContext.mounted) return;
           await sessionsDao.deleteSessionsByTaskId(taskId);
           await tasksDao.deleteTask(taskId);
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          if (!scaffoldContext.mounted) return;
+          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
             const SnackBar(content: Text('Zadanie usunięte')),
           );
         });
@@ -115,7 +119,7 @@ class TaskListItem extends ConsumerWidget {
   }
 
   static Future<void> _showEditNameDialog(
-    BuildContext context,
+    BuildContext scaffoldContext,
     WidgetRef ref,
     TaskRow task,
     TasksDao tasksDao,
@@ -123,7 +127,7 @@ class TaskListItem extends ConsumerWidget {
     final controller = TextEditingController(text: task.name);
     try {
       final name = await showDialog<String>(
-        context: context,
+        context: scaffoldContext,
         builder: (ctx) => AlertDialog(
           title: const Text('Nazwa zadania'),
           content: TextField(
@@ -154,11 +158,11 @@ class TaskListItem extends ConsumerWidget {
         final taskId = task.id;
         final nameToSave = name;
         WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!context.mounted) return;
+          if (!scaffoldContext.mounted) return;
           final nowMs = DateTime.now().millisecondsSinceEpoch;
           await tasksDao.renameTask(taskId, name: nameToSave, nowMs: nowMs);
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          if (!scaffoldContext.mounted) return;
+          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
             const SnackBar(content: Text('Nazwa zapisana')),
           );
         });

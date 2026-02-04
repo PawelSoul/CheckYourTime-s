@@ -112,7 +112,10 @@ class TasksListPage extends ConsumerWidget {
                       ],
                     ),
                   )
-                : _TasksOfCategory(categoryId: selectedCategory!),
+                : _TasksOfCategory(
+                    categoryId: selectedCategory!,
+                    scaffoldContext: context,
+                  ),
           ),
         ],
       ),
@@ -367,9 +370,13 @@ class TasksListPage extends ConsumerWidget {
 }
 
 class _TasksOfCategory extends ConsumerWidget {
-  const _TasksOfCategory({required this.categoryId});
+  const _TasksOfCategory({
+    required this.categoryId,
+    required this.scaffoldContext,
+  });
 
   final String categoryId;
+  final BuildContext scaffoldContext;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -396,7 +403,10 @@ class _TasksOfCategory extends ConsumerWidget {
         return ListView.builder(
           padding: const EdgeInsets.all(8),
           itemCount: tasks.length,
-          itemBuilder: (context, index) => TaskListItem(task: tasks[index]),
+          itemBuilder: (context, index) => TaskListItem(
+            task: tasks[index],
+            scaffoldContext: scaffoldContext,
+          ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
