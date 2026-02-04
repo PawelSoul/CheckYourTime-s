@@ -49,15 +49,24 @@ final timerControllerProvider =
 
 class TimerController extends AutoDisposeNotifier<TimerState> {
   Timer? _ticker;
-  late final Stopwatch _stopwatch;
+  late Stopwatch _stopwatch;
+  bool _disposed = false;
 
   @override
   TimerState build() {
     _stopwatch = Stopwatch();
+    _disposed = false;
     ref.onDispose(() {
+      _disposed = true;
       _ticker?.cancel();
+      _ticker = null;
     });
     return TimerState.initial;
+  }
+
+  void _cancelTicker() {
+    _ticker?.cancel();
+    _ticker = null;
   }
 
   CategoriesDao get _categoriesDao => ref.read(categoriesDaoProvider);
@@ -67,8 +76,9 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
   String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
 
   void _startTicker() {
-    _ticker?.cancel();
+    _cancelTicker();
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (_disposed || !state.isRunning) return;
       state = state.copyWith(elapsed: _stopwatch.elapsed);
     });
   }
@@ -105,11 +115,14 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
       nowMs: nowMs,
     );
 
+    if (_disposed) return;
+
     _stopwatch
       ..reset()
       ..start();
     _startTicker();
 
+    if (_disposed) return;
     state = state.copyWith(
       isRunning: true,
       elapsed: Duration.zero,
@@ -145,13 +158,15 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
   Future<void> pause() async {
     if (!state.isRunning) return;
     _stopwatch.stop();
-    _ticker?.cancel();
+    _cancelTicker();
+    if (_disposed) return;
     state = state.copyWith(isRunning: false);
   }
 
   Future<void> resume() async {
     if (state.isRunning) return;
     if (state.activeSessionId == null) return;
+    if (_disposed) return;
     _stopwatch.start();
     _startTicker();
     state = state.copyWith(isRunning: true);
@@ -165,7 +180,7 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     if (sessionId == null || taskId == null) return;
 
     _stopwatch.stop();
-    _ticker?.cancel();
+    _cancelTicker();
 
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
@@ -187,6 +202,7 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
       nowMs: nowMs,
     );
 
+    if (_disposed) return;
     state = TimerState.initial;
   }
 
