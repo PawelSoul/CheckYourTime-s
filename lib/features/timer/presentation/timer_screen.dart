@@ -54,8 +54,7 @@ class TimerScreen extends ConsumerWidget {
                 ElevatedButton(
                   onPressed: state.activeSessionId != null
                       ? () async {
-                          final info = await controller.stop();
-                          if (info == null) return;
+                          await controller.stop();
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

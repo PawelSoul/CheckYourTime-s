@@ -71,16 +71,26 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     });
   }
 
-  /// Start odliczania dla istniejącego zadania (wybranego z listy).
-  Future<void> startWithTask(String taskId) async {
+  /// Start odliczania dla danej kategorii. Tworzy task z nazwą "Kategoria YYYY-MM-DD".
+  Future<void> startWithCategory(String categoryName) async {
     if (state.isRunning) return;
-
-    final existing = await _tasksDao.getById(taskId);
-    if (existing == null) return;
 
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
+    final dateStr = _formatDate(now);
+    final taskName = '$categoryName $dateStr';
+    final taskId = _newId();
     final sessionId = _newId();
+
+    await _tasksDao.upsertTask(
+      TasksTableCompanion.insert(
+        id: taskId,
+        name: taskName,
+        createdAt: nowMs,
+        updatedAt: nowMs,
+        tag: Value(categoryName),
+      ),
+    );
 
     await _sessionsDao.startSession(
       sessionId: sessionId,
@@ -104,20 +114,29 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     );
   }
 
-  /// Tworzy nowe zadanie (np. nowa kategoria) i zwraca jego id.
-  Future<String> createTask(String name, {String? tag}) async {
+  static String _formatDate(DateTime d) {
+    final y = d.year;
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
+
+  /// Tworzy nową kategorię (task z name == tag). Zwraca nazwę kategorii.
+  Future<String> createCategory(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return trimmed;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final taskId = _newId();
     await _tasksDao.upsertTask(
       TasksTableCompanion.insert(
         id: taskId,
-        name: name,
+        name: trimmed,
         createdAt: nowMs,
         updatedAt: nowMs,
-        tag: tag != null ? Value(tag) : const Value.absent(),
+        tag: Value(trimmed),
       ),
     );
-    return taskId;
+    return trimmed;
   }
 
   Future<void> pause() async {
@@ -135,12 +154,12 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     state = state.copyWith(isRunning: true);
   }
 
-  /// Zatrzymuje sesję w DB i zwraca info potrzebne do dialogu z nazwą.
-  Future<({String taskId, String sessionId, Duration duration})?> stop() async {
+  /// Zatrzymuje sesję w DB. Nazwę taska uzupełnia o "[#n]" gdy w tej samej kategorii jest duplikat daty.
+  Future<void> stop() async {
     final sessionId = state.activeSessionId;
     final taskId = state.activeTaskId;
 
-    if (sessionId == null || taskId == null) return null;
+    if (sessionId == null || taskId == null) return;
 
     _stopwatch.stop();
     _ticker?.cancel();
@@ -148,24 +167,23 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
 
+    final task = await _tasksDao.getById(taskId);
+    if (task != null) {
+      final baseName = task.name;
+      final categoryTag = task.tag ?? '';
+      final count = await _tasksDao.countByTagAndNamePrefix(categoryTag, baseName);
+      if (count > 1) {
+        final newName = '$baseName [#${count - 1}]';
+        await _tasksDao.renameTask(taskId, name: newName, nowMs: nowMs);
+      }
+    }
+
     await _sessionsDao.stopSession(
       sessionId: sessionId,
       endAtMs: nowMs,
       nowMs: nowMs,
     );
 
-    final duration = _stopwatch.elapsed;
-
     state = TimerState.initial;
-
-    return (taskId: taskId, sessionId: sessionId, duration: duration);
-  }
-
-  Future<void> setTaskName({
-    required String taskId,
-    required String name,
-  }) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await _tasksDao.renameTask(taskId, name: name, nowMs: nowMs);
   }
 }

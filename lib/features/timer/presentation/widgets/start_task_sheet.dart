@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../data/db/daos/tasks_dao.dart';
 import '../../../tasks/tasks_providers.dart';
 import '../../application/timer_controller.dart';
 
-/// Bottom sheet: wybór zadania z kategorii lub utworzenie nowej kategorii.
-/// Po wyborze / utworzeniu uruchamia stoper.
-/// [onTaskSelected] – wywołane po starcie (np. nawigacja na /timer).
+/// Bottom sheet: wybór kategorii lub utworzenie nowej. Po wyborze start odliczania.
 void showStartTaskSheet(
   BuildContext context,
   WidgetRef ref, {
@@ -38,19 +35,9 @@ class _StartTaskSheetContent extends ConsumerWidget {
   final ScrollController scrollController;
   final VoidCallback onTaskSelected;
 
-  static const _categoryNone = 'Inne';
-
-  static Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (_) {
-      return const Color(0xFF4F46E5);
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasksAsync = ref.watch(tasksStreamProvider);
+    final categoriesAsync = ref.watch(categoriesStreamProvider);
     final timerNotifier = ref.read(timerControllerProvider.notifier);
 
     return Column(
@@ -59,62 +46,44 @@ class _StartTaskSheetContent extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
-            'Wybierz zadanie lub dodaj nową kategorię',
+            'Wybierz kategorię lub dodaj nową',
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
         const Divider(height: 1),
         Expanded(
-          child: tasksAsync.when(
-            data: (tasks) {
-              final byTag = <String?, List<TaskRow>>{};
-              for (final t in tasks) {
-                final tag = t.tag?.trim().isEmpty ?? true ? null : t.tag;
-                byTag.putIfAbsent(tag, () => []).add(t);
-              }
-              final tagOrder = byTag.keys.toList()
-                ..sort((a, b) => (a ?? _categoryNone).compareTo(b ?? _categoryNone));
-
+          child: categoriesAsync.when(
+            data: (categories) {
               return ListView(
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  for (final tag in tagOrder) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: Text(
-                        tag ?? _categoryNone,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                      ),
-                    ),
-                    for (final task in byTag[tag]!) ...[
-                      ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _parseColor(task.colorHex),
-                          child: Text(
-                            task.name.isNotEmpty ? task.name[0].toUpperCase() : '?',
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                  for (final categoryName in categories)
+                    ListTile(
+                      leading: CircleAvatar(
+                        child: Text(
+                          categoryName.isNotEmpty ? categoryName[0].toUpperCase() : '?',
+                          style: const TextStyle(color: Colors.white),
                         ),
-                        title: Text(task.name),
-                        onTap: () async {
-                          await timerNotifier.startWithTask(task.id);
+                      ),
+                      title: Text(categoryName),
+                      onTap: () async {
+                        await timerNotifier.startWithCategory(categoryName);
+                        if (!context.mounted) return;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (!context.mounted) return;
                           onTaskSelected();
                           Navigator.of(context).pop();
-                        },
-                      ),
-                    ],
-                  ],
+                        });
+                      },
+                    ),
                   const Divider(height: 24),
                   ListTile(
                     leading: const CircleAvatar(
                       child: Icon(Icons.add, color: Colors.white),
                     ),
                     title: const Text('Nowa kategoria'),
-                    subtitle: const Text('Dodaj nowe zadanie i zacznij odliczanie'),
+                    subtitle: const Text('np. Matematyka, Siłownia – dodaj i zacznij odliczanie'),
                     onTap: () => _showNewCategoryForm(context, ref, timerNotifier),
                   ),
                 ],
@@ -163,7 +132,7 @@ class _StartTaskSheetContent extends ConsumerWidget {
                   autofocus: true,
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
-                    labelText: 'Nazwa (np. Siłownia, Nauka)',
+                    labelText: 'Nazwa (np. Matematyka, Siłownia)',
                     hintText: 'Wpisz nazwę',
                     border: OutlineInputBorder(),
                   ),
@@ -203,11 +172,14 @@ class _StartTaskSheetContent extends ConsumerWidget {
     TimerController timerNotifier,
   ) async {
     if (name.isEmpty) return;
-    final taskId = await timerNotifier.createTask(name, tag: name);
-    if (!formContext.mounted) return;
+    final categoryName = await timerNotifier.createCategory(name);
+    if (categoryName.isEmpty || !formContext.mounted) return;
     Navigator.of(formContext).pop();
-    await timerNotifier.startWithTask(taskId);
-    if (!mainSheetContext.mounted) return;
-    Navigator.of(mainSheetContext).pop();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await timerNotifier.startWithCategory(categoryName);
+      if (!mainSheetContext.mounted) return;
+      Navigator.of(mainSheetContext).pop();
+    });
   }
 }

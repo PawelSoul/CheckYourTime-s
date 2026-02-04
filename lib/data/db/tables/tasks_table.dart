@@ -7,7 +7,7 @@ class TasksTable extends Table {
 
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
 
-  /// v3: opcjonalny tag (np. "praca", "zdrowie")
+  /// Kategoria = tag (np. "Matematyka", "Siłownia"). Zadania w tej samej kategorii mają ten sam tag.
   TextColumn get tag => text().nullable()();
 
   /// v3: planowany czas dzienny/na task (sekundy) - do progressu

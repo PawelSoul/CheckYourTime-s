@@ -38,6 +38,33 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     return q.watch();
   }
 
+  /// Zadania w danej kategorii (tag).
+  Future<List<TaskRow>> getByTag(String tag, {bool includeArchived = false}) async {
+    final q = select(tasksTable)
+      ..where((t) =>
+          t.tag.equals(tag) &
+          (includeArchived ? t.id.isNotNull() : t.isArchived.equals(false)))
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]);
+    return q.get();
+  }
+
+  Stream<List<TaskRow>> watchByTag(String tag, {bool includeArchived = false}) {
+    final q = select(tasksTable)
+      ..where((t) =>
+          t.tag.equals(tag) &
+          (includeArchived ? t.id.isNotNull() : t.isArchived.equals(false)))
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)]);
+    return q.watch();
+  }
+
+  /// Ile zadań w kategorii [tag] ma nazwę zaczynającą się od [namePrefix].
+  Future<int> countByTagAndNamePrefix(String tag, String namePrefix) async {
+    final rows = await (select(tasksTable)
+          ..where((t) => t.tag.equals(tag) & t.name.like('$namePrefix%')))
+        .get();
+    return rows.length;
+  }
+
   // --- UPDATE ---
   Future<void> archiveTask(String id, {required bool archived, required int nowMs}) async {
     await (update(tasksTable)..where((t) => t.id.equals(id))).write(
