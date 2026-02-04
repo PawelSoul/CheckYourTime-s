@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/db/daos/categories_dao.dart';
+import '../../../providers/app_db_provider.dart';
 import '../tasks_providers.dart';
 import 'widgets/task_list_item.dart';
 
@@ -15,6 +17,13 @@ class TasksListPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Zadania'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.folder_rounded),
+            tooltip: 'Edytuj kategorie',
+            onPressed: () => _showManageCategoriesSheet(context, ref),
+          ),
+        ],
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -64,7 +73,10 @@ class TasksListPage extends ConsumerWidget {
                           style: const TextStyle(fontSize: 14),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        onTap: () => ref.read(selectedCategoryProvider.notifier).state = category.id,
+                        onTap: () =>
+                            ref.read(selectedCategoryProvider.notifier).state = category.id,
+                        onLongPress: () =>
+                            _showCategoryOptionsSheet(context, ref, category),
                       );
                     },
                   );
@@ -105,6 +117,244 @@ class TasksListPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  static Future<void> _showManageCategoriesSheet(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final categoriesAsync = ref.read(categoriesStreamProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollController) => categoriesAsync.when(
+          data: (categories) {
+            if (categories.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    'Brak kategorii. Dodaj pierwszą w Stoperze.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(ctx).textTheme.bodyLarge,
+                  ),
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Text(
+                    'Kategorie',
+                    style: Theme.of(ctx).textTheme.titleLarge,
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          child: Text(
+                            category.name.isNotEmpty
+                                ? category.name[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(category.name),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              tooltip: 'Edytuj nazwę',
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                _showEditCategoryDialog(context, ref, category);
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Theme.of(ctx).colorScheme.error,
+                              ),
+                              tooltip: 'Usuń kategorię',
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                _confirmDeleteCategory(context, ref, category);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Błąd: $err', style: Theme.of(ctx).textTheme.bodyMedium),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _showCategoryOptionsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryRow category,
+  ) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+              child: Text(
+                category.name,
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edytuj nazwę kategorii'),
+              onTap: () => Navigator.of(ctx).pop('edit'),
+            ),
+            ListTile(
+              leading: Icon(Icons.delete, color: Theme.of(ctx).colorScheme.error),
+              title: Text(
+                'Usuń kategorię',
+                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+              ),
+              onTap: () => Navigator.of(ctx).pop('delete'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (!context.mounted || action == null) return;
+
+    if (action == 'edit') {
+      await _showEditCategoryDialog(context, ref, category);
+    } else if (action == 'delete') {
+      await _confirmDeleteCategory(context, ref, category);
+    }
+  }
+
+  static Future<void> _showEditCategoryDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryRow category,
+  ) async {
+    final categoriesDao = ref.read(categoriesDaoProvider);
+    final controller = TextEditingController(text: category.name);
+    try {
+      final name = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nazwa kategorii'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Nazwa',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (v) =>
+                Navigator.of(ctx).pop(v.trim().isEmpty ? null : v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Anuluj'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final v = controller.text.trim();
+                Navigator.of(ctx).pop(v.isEmpty ? null : v);
+              },
+              child: const Text('Zapisz'),
+            ),
+          ],
+        ),
+      );
+      if (name != null && name.isNotEmpty) {
+        await categoriesDao.renameCategory(category.id, name: name);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Kategoria zapisana')),
+          );
+        }
+      }
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  static Future<void> _confirmDeleteCategory(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryRow category,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Usunąć kategorię?'),
+        content: const Text(
+          'Zadania w tej kategorii pozostaną, ale bez przypisanej kategorii. Tej operacji nie można cofnąć.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Usuń'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final tasksDao = ref.read(tasksDaoProvider);
+    final categoriesDao = ref.read(categoriesDaoProvider);
+    await tasksDao.clearCategoryIdForCategory(category.id);
+    await categoriesDao.deleteCategory(category.id);
+    ref.read(selectedCategoryProvider.notifier).state = null;
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kategoria usunięta')),
+      );
+    }
   }
 }
 

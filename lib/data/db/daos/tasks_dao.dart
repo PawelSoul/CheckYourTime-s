@@ -112,6 +112,17 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     );
   }
 
+  /// Ustawia categoryId na null dla wszystkich zadań w danej kategorii (przed usunięciem kategorii).
+  Future<void> clearCategoryIdForCategory(String categoryId) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await (update(tasksTable)..where((t) => t.categoryId.equals(categoryId))).write(
+      TasksTableCompanion(
+        categoryId: const Value(null),
+        updatedAt: Value(nowMs),
+      ),
+    );
+  }
+
   // --- DELETE ---
   Future<int> deleteTask(String id) {
     // Uwaga: z FK RESTRICT usunięcie taska z sesjami się nie uda.

@@ -32,6 +32,15 @@ class CategoriesDao extends DatabaseAccessor<AppDb> with _$CategoriesDaoMixin {
           ..orderBy([(c) => OrderingTerm(expression: c.name, mode: OrderingMode.asc)]))
         .watch();
   }
+
+  Future<void> renameCategory(String id, {required String name}) async {
+    await (update(categoriesTable)..where((c) => c.id.equals(id)))
+        .write(CategoriesTableCompanion(name: Value(name)));
+  }
+
+  Future<int> deleteCategory(String id) {
+    return (delete(categoriesTable)..where((c) => c.id.equals(id))).go();
+  }
 }
 
 typedef CategoryRow = CategoriesTableData;
