@@ -71,26 +71,17 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     });
   }
 
-  Future<void> start() async {
+  /// Start odliczania dla istniejącego zadania (wybranego z listy).
+  Future<void> startWithTask(String taskId) async {
     if (state.isRunning) return;
+
+    final existing = await _tasksDao.getById(taskId);
+    if (existing == null) return;
 
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
-
-    final taskId = _newId();
     final sessionId = _newId();
 
-    // 1) Tworzymy tymczasowy task, żeby mieć taskId (bo FK w sessions jest wymagane)
-    await _tasksDao.upsertTask(
-      TasksTableCompanion.insert(
-        id: taskId,
-        name: '(bez nazwy)',
-        createdAt: nowMs,
-        updatedAt: nowMs,
-      ),
-    );
-
-    // 2) Start sesji (endAt = null)
     await _sessionsDao.startSession(
       sessionId: sessionId,
       taskId: taskId,
@@ -111,6 +102,22 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
       activeTaskId: taskId,
       startedAt: now,
     );
+  }
+
+  /// Tworzy nowe zadanie (np. nowa kategoria) i zwraca jego id.
+  Future<String> createTask(String name, {String? tag}) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final taskId = _newId();
+    await _tasksDao.upsertTask(
+      TasksTableCompanion.insert(
+        id: taskId,
+        name: name,
+        createdAt: nowMs,
+        updatedAt: nowMs,
+        tag: tag != null ? Value(tag) : const Value.absent(),
+      ),
+    );
+    return taskId;
   }
 
   Future<void> pause() async {
