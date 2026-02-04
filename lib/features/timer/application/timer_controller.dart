@@ -186,4 +186,13 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
 
     state = TimerState.initial;
   }
+
+  /// Zmienia nazwę zadania (np. z ekranu edycji).
+  Future<void> setTaskName({
+    required String taskId,
+    required String name,
+  }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await _tasksDao.renameTask(taskId, name: name, nowMs: nowMs);
+  }
 }
