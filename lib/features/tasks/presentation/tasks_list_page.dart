@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/daos/categories_dao.dart';
+import '../../../data/db/daos/sessions_dao.dart';
+import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../tasks_providers.dart';
 import 'widgets/task_list_item.dart';
@@ -115,6 +117,8 @@ class TasksListPage extends ConsumerWidget {
                 : _TasksOfCategory(
                     categoryId: selectedCategory!,
                     scaffoldContext: context,
+                    onEditTask: (task) => _showEditTaskDialog(context, ref, task),
+                    onDeleteTask: (task) => _showDeleteTaskDialog(context, ref, task),
                   ),
           ),
         ],
@@ -367,16 +371,113 @@ class TasksListPage extends ConsumerWidget {
       );
     });
   }
+
+  static Future<void> _showEditTaskDialog(
+    BuildContext context,
+    WidgetRef ref,
+    TaskRow task,
+  ) async {
+    final tasksDao = ref.read(tasksDaoProvider);
+    final controller = TextEditingController(text: task.name);
+    try {
+      final name = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nazwa zadania'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Nazwa',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (v) =>
+                Navigator.of(ctx).pop(v.trim().isEmpty ? null : v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Anuluj'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final v = controller.text.trim();
+                Navigator.of(ctx).pop(v.isEmpty ? null : v);
+              },
+              child: const Text('Zapisz'),
+            ),
+          ],
+        ),
+      );
+      if (name != null && name.isNotEmpty && context.mounted) {
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        await tasksDao.renameTask(task.id, name: name, nowMs: nowMs);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nazwa zapisana')),
+          );
+        }
+      }
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  static Future<void> _showDeleteTaskDialog(
+    BuildContext context,
+    WidgetRef ref,
+    TaskRow task,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Usunąć zadanie?'),
+        content: const Text(
+          'Zadanie i powiązane sesje zostaną trwale usunięte. Tej operacji nie można cofnąć.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Usuń'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final tasksDao = ref.read(tasksDaoProvider);
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    await sessionsDao.deleteSessionsByTaskId(task.id);
+    await tasksDao.deleteTask(task.id);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Zadanie usunięte')),
+      );
+    }
+  }
 }
 
 class _TasksOfCategory extends ConsumerWidget {
   const _TasksOfCategory({
     required this.categoryId,
     required this.scaffoldContext,
+    required this.onEditTask,
+    required this.onDeleteTask,
   });
 
   final String categoryId;
   final BuildContext scaffoldContext;
+  final void Function(TaskRow task) onEditTask;
+  final void Function(TaskRow task) onDeleteTask;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -406,6 +507,8 @@ class _TasksOfCategory extends ConsumerWidget {
           itemBuilder: (context, index) => TaskListItem(
             task: tasks[index],
             scaffoldContext: scaffoldContext,
+            onEditTask: onEditTask,
+            onDeleteTask: onDeleteTask,
           ),
         );
       },
