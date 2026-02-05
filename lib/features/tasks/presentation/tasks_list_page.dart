@@ -413,15 +413,18 @@ class TasksListPage extends ConsumerWidget {
         final taskId = task.id;
         final nameToSave = name;
         final ctx = context;
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Zapis w microtask; SnackBar w kolejnym microtask – po zakończeniu przebudowy listy (unikamy _dependents.isEmpty).
+        Future.microtask(() async {
           if (!ctx.mounted) return;
-          final dao = ref.read(tasksDaoProvider);
           final nowMs = DateTime.now().millisecondsSinceEpoch;
-          await dao.renameTask(taskId, name: nameToSave, nowMs: nowMs);
-          if (!ctx.mounted) return;
-          ScaffoldMessenger.of(ctx).showSnackBar(
-            const SnackBar(content: Text('Nazwa zapisana')),
-          );
+          await tasksDao.renameTask(taskId, name: nameToSave, nowMs: nowMs);
+        }).then((_) {
+          Future.microtask(() {
+            if (!ctx.mounted) return;
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              const SnackBar(content: Text('Nazwa zapisana')),
+            );
+          });
         });
       }
     } finally {
