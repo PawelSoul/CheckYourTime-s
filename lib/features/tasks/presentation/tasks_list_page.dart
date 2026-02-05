@@ -294,14 +294,22 @@ class TasksListPage extends ConsumerWidget {
     CategoryRow category,
   ) async {
     final categoriesDao = ref.read(categoriesDaoProvider);
-    final currentHex = category.colorHex;
+    final tasksDao = ref.read(tasksDaoProvider);
 
     if (!context.mounted) return;
     final chosen = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 20,
+            bottom: 24 + MediaQuery.of(ctx).viewPadding.bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -316,33 +324,14 @@ class TasksListPage extends ConsumerWidget {
                 runSpacing: 12,
                 children: [
                   for (final hex in CategoryColors.hexPool)
-                    GestureDetector(
+                    _ColorPickerDot(
+                      hex: hex,
+                      isSelected: _hexEquals(hex, category.colorHex),
                       onTap: () => Navigator.of(ctx).pop(hex),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: CategoryColors.parse(hex),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: hex.toUpperCase() == currentHex.toUpperCase()
-                                ? Theme.of(ctx).colorScheme.primary
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: const Text('Anuluj'),
@@ -353,14 +342,23 @@ class TasksListPage extends ConsumerWidget {
       ),
     );
 
-    if (chosen != null && chosen != currentHex && context.mounted) {
-      await categoriesDao.updateCategoryColor(category.id, chosen);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kolor kategorii zapisany')),
-        );
-      }
+    if (chosen == null || chosen.trim().isEmpty || !context.mounted) return;
+    final hexToSave = chosen.trim().startsWith('#') ? chosen.trim() : '#${chosen.trim()}';
+    if (_hexEquals(hexToSave, category.colorHex)) return;
+
+    await categoriesDao.updateCategoryColor(category.id, hexToSave);
+    await tasksDao.setColorForCategory(category.id, hexToSave);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kolor kategorii zapisany')),
+      );
     }
+  }
+
+  static bool _hexEquals(String a, String b) {
+    final an = a.replaceFirst('#', '').trim().toUpperCase();
+    final bn = b.replaceFirst('#', '').trim().toUpperCase();
+    return an == bn;
   }
 
   static Future<void> _showEditCategoryDialog(
@@ -557,6 +555,57 @@ class _TasksOfCategory extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
         child: Text('Błąd: $err', style: Theme.of(context).textTheme.bodyMedium),
+      ),
+    );
+  }
+}
+
+/// Kropka wyboru koloru z pewnym obszarem dotyku.
+class _ColorPickerDot extends StatelessWidget {
+  const _ColorPickerDot({
+    required this.hex,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String hex;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: CategoryColors.parse(hex),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
+                width: 3,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

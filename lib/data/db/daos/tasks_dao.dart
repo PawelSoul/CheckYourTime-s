@@ -123,6 +123,17 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     );
   }
 
+  /// Ustawia colorHex dla wszystkich zadań w danej kategorii (np. po zmianie koloru kategorii).
+  Future<void> setColorForCategory(String categoryId, String colorHex) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await (update(tasksTable)..where((t) => t.categoryId.equals(categoryId))).write(
+      TasksTableCompanion(
+        colorHex: Value(colorHex),
+        updatedAt: Value(nowMs),
+      ),
+    );
+  }
+
   // --- DELETE ---
   Future<int> deleteTask(String id) {
     // Uwaga: z FK RESTRICT usunięcie taska z sesjami się nie uda.
