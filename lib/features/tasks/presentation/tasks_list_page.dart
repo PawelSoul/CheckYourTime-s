@@ -5,6 +5,7 @@ import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
+import '../../calendar/application/calendar_providers.dart';
 import '../tasks_providers.dart';
 import 'widgets/task_list_item.dart';
 
@@ -479,6 +480,7 @@ class TasksListPage extends ConsumerWidget {
 
     if (!context.mounted) return;
     ref.read(selectedCategoryProvider.notifier).state = null;
+    ref.invalidate(calendarSessionsProvider);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Kategoria usunięta')),
     );
@@ -520,6 +522,7 @@ class TasksListPage extends ConsumerWidget {
     await tasksDao.deleteTask(task.id);
 
     if (context.mounted) {
+      ref.invalidate(calendarSessionsProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Zadanie usunięte')),
       );
