@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/category_colors.dart';
 import '../../../data/db/app_db.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
@@ -148,16 +149,22 @@ class TimerController extends Notifier<TimerState> {
     return '$y-$m-$day';
   }
 
-  /// Tworzy nową kategorię w tabeli categories. Zwraca id kategorii.
+  /// Tworzy nową kategorię w tabeli categories. Przypisuje unikalny kolor z puli.
+  /// Zwraca id kategorii.
   Future<String> createCategory(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return '';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final categoryId = _newId();
+    final existing = await _categoriesDao.getAll();
+    final usedColors = existing.map((c) => c.colorHex).toList();
+    final colorHex = CategoryColors.pickUnused(usedColors);
+
     await _categoriesDao.insertCategory(
       CategoriesTableCompanion.insert(
         id: categoryId,
         name: trimmed,
+        colorHex: Value(colorHex),
         createdAt: nowMs,
       ),
     );

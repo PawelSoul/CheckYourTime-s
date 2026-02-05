@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/category_colors.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
@@ -65,6 +66,7 @@ class TasksListPage extends ConsumerWidget {
                         selected: isSelected,
                         leading: CircleAvatar(
                           radius: 18,
+                          backgroundColor: CategoryColors.parse(category.colorHex),
                           child: Text(
                             category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
                             style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -172,6 +174,7 @@ class TasksListPage extends ConsumerWidget {
                       final category = categories[index];
                       return ListTile(
                         leading: CircleAvatar(
+                          backgroundColor: CategoryColors.parse(category.colorHex),
                           child: Text(
                             category.name.isNotEmpty
                                 ? category.name[0].toUpperCase()
@@ -189,6 +192,14 @@ class TasksListPage extends ConsumerWidget {
                               onPressed: () {
                                 Navigator.of(ctx).pop();
                                 _showEditCategoryDialog(context, ref, category);
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.palette_outlined),
+                              tooltip: 'Zmień kolor',
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                _showCategoryColorPicker(context, ref, category);
                               },
                             ),
                             IconButton(
@@ -248,6 +259,11 @@ class TasksListPage extends ConsumerWidget {
               onTap: () => Navigator.of(ctx).pop('edit'),
             ),
             ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Zmień kolor'),
+              onTap: () => Navigator.of(ctx).pop('color'),
+            ),
+            ListTile(
               leading: Icon(Icons.delete, color: Theme.of(ctx).colorScheme.error),
               title: Text(
                 'Usuń kategorię',
@@ -265,8 +281,85 @@ class TasksListPage extends ConsumerWidget {
 
     if (action == 'edit') {
       await _showEditCategoryDialog(context, ref, category);
+    } else if (action == 'color') {
+      await _showCategoryColorPicker(context, ref, category);
     } else if (action == 'delete') {
       await _confirmDeleteCategory(context, ref, category);
+    }
+  }
+
+  static Future<void> _showCategoryColorPicker(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryRow category,
+  ) async {
+    final categoriesDao = ref.read(categoriesDaoProvider);
+    final currentHex = category.colorHex;
+
+    if (!context.mounted) return;
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Kolor kategorii',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final hex in CategoryColors.hexPool)
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(hex),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: CategoryColors.parse(hex),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: hex.toUpperCase() == currentHex.toUpperCase()
+                                ? Theme.of(ctx).colorScheme.primary
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Anuluj'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (chosen != null && chosen != currentHex && context.mounted) {
+      await categoriesDao.updateCategoryColor(category.id, chosen);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kolor kategorii zapisany')),
+        );
+      }
     }
   }
 
@@ -447,6 +540,9 @@ class _TasksOfCategory extends ConsumerWidget {
             ),
           );
         }
+        final category = ref.watch(categoryByIdProvider(categoryId));
+        final categoryColorHex = category?.colorHex;
+
         return ListView.builder(
           padding: const EdgeInsets.all(8),
           itemCount: tasks.length,
@@ -454,6 +550,7 @@ class _TasksOfCategory extends ConsumerWidget {
             task: tasks[index],
             scaffoldContext: scaffoldContext,
             onDeleteTask: onDeleteTask,
+            categoryColorHex: categoryColorHex,
           ),
         );
       },

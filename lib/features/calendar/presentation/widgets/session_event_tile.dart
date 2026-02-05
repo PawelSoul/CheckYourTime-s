@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/category_colors.dart';
 import '../../../../data/db/app_db.dart';
 import '../../../../data/db/daos/sessions_dao.dart';
+import '../../../tasks/tasks_providers.dart';
 
-class SessionEventTile extends StatelessWidget {
+class SessionEventTile extends ConsumerWidget {
   const SessionEventTile({
     super.key,
     required this.sessionWithTask,
@@ -12,9 +15,13 @@ class SessionEventTile extends StatelessWidget {
   final SessionWithTask sessionWithTask;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final session = sessionWithTask.session;
     final task = sessionWithTask.task;
+    final category = task.categoryId != null
+        ? ref.watch(categoryByIdProvider(task.categoryId!))
+        : null;
+    final colorHex = category?.colorHex ?? task.colorHex;
     final start = DateTime.fromMillisecondsSinceEpoch(session.startAt);
     final endMs = session.endAt;
     final hasEnd = endMs != null;
@@ -30,7 +37,7 @@ class SessionEventTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _parseColor(task.colorHex),
+          backgroundColor: CategoryColors.parse(colorHex),
           child: Text(
             task.name.isNotEmpty ? task.name[0].toUpperCase() : '?',
             style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -63,11 +70,4 @@ class SessionEventTile extends StatelessWidget {
     return '${m} min';
   }
 
-  static Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (_) {
-      return const Color(0xFF4F46E5);
-    }
-  }
 }

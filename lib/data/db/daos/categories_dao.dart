@@ -38,6 +38,11 @@ class CategoriesDao extends DatabaseAccessor<AppDb> with _$CategoriesDaoMixin {
         .write(CategoriesTableCompanion(name: Value(name)));
   }
 
+  Future<void> updateCategoryColor(String id, String colorHex) async {
+    await (update(categoriesTable)..where((c) => c.id.equals(id)))
+        .write(CategoriesTableCompanion(colorHex: Value(colorHex)));
+  }
+
   Future<int> deleteCategory(String id) {
     return (delete(categoriesTable)..where((c) => c.id.equals(id))).go();
   }

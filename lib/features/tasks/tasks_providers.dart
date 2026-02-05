@@ -22,6 +22,18 @@ final categoriesStreamProvider = StreamProvider<List<CategoryRow>>((ref) {
   return dao.watchAll();
 });
 
+/// Kategoria po id (z aktualnej listy). Używane do koloru przy zadaniach.
+final categoryByIdProvider =
+    Provider.family<CategoryRow?, String>((ref, categoryId) {
+  final categories = ref.watch(categoriesStreamProvider).valueOrNull;
+  if (categories == null) return null;
+  try {
+    return categories.firstWhere((c) => c.id == categoryId);
+  } catch (_) {
+    return null;
+  }
+});
+
 /// Stream zadań dla danej kategorii (po categoryId).
 final tasksByCategoryProvider =
     StreamProvider.autoDispose.family<List<TaskRow>, String>((ref, categoryId) {

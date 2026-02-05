@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/category_colors.dart';
 import '../../../../data/db/daos/tasks_dao.dart';
 import '../../../../providers/app_db_provider.dart';
 
@@ -10,11 +11,14 @@ class TaskListItem extends ConsumerWidget {
     required this.task,
     required this.scaffoldContext,
     required this.onDeleteTask,
+    this.categoryColorHex,
   });
 
   final TaskRow task;
   final BuildContext scaffoldContext;
   final void Function(TaskRow task) onDeleteTask;
+  /// Kolor kategorii – używany zamiast task.colorHex, gdy zadanie jest w kategorii.
+  final String? categoryColorHex;
 
   static String _formatDateTime(int ms) {
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
@@ -28,9 +32,10 @@ class TaskListItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorHex = categoryColorHex ?? task.colorHex;
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: _parseColor(task.colorHex),
+        backgroundColor: CategoryColors.parse(colorHex),
         child: Text(
           task.name.isNotEmpty ? task.name[0].toUpperCase() : '?',
           style: const TextStyle(color: Colors.white),
@@ -91,11 +96,4 @@ class TaskListItem extends ConsumerWidget {
     }
   }
 
-  static Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (_) {
-      return const Color(0xFF4F46E5);
-    }
-  }
 }

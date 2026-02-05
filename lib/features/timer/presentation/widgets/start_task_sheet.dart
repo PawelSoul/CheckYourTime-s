@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/category_colors.dart';
 import '../../../tasks/tasks_providers.dart';
 import '../../application/timer_controller.dart';
 
@@ -61,6 +62,7 @@ class _StartTaskSheetContent extends ConsumerWidget {
                   for (final category in categories)
                     ListTile(
                       leading: CircleAvatar(
+                        backgroundColor: CategoryColors.parse(category.colorHex),
                         child: Text(
                           category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
                           style: const TextStyle(color: Colors.white),
