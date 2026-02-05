@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
-import '../../../../data/db/app_db.dart';
 import '../../../../data/db/daos/sessions_dao.dart';
 import '../../../tasks/tasks_providers.dart';
 
@@ -67,7 +66,7 @@ class SessionEventTile extends ConsumerWidget {
     final h = sec ~/ 3600;
     final m = (sec % 3600) ~/ 60;
     if (h > 0) return '${h}h ${m}min';
-    return '${m} min';
+    return '$m min';
   }
 
 }

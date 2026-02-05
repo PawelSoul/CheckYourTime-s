@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/timer_controller.dart';
+import 'widgets/start_task_sheet.dart';
 import 'widgets/timer_actions.dart';
 import 'widgets/timer_clock.dart';
 
@@ -37,7 +38,7 @@ class TimerPage extends ConsumerWidget {
               isIdle: isIdle,
               isRunning: isRunning,
               isPaused: isPaused,
-              onStart: () => controller.start(),
+              onStart: () => showStartTaskSheet(context, ref),
               onPause: () => controller.pause(),
               onResume: () => controller.resume(),
               onStop: () => _onStop(context, controller),

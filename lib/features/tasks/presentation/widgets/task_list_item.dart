@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../../data/db/daos/tasks_dao.dart';
-import '../../../../providers/app_db_provider.dart';
 
 class TaskListItem extends ConsumerWidget {
   const TaskListItem({

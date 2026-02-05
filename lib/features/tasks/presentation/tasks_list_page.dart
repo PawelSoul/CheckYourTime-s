@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../data/db/daos/categories_dao.dart';
-import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
-import '../../../data/db/app_db.dart';
 import '../../../providers/app_db_provider.dart';
 import '../tasks_providers.dart';
 import 'widgets/task_list_item.dart';
@@ -118,7 +116,7 @@ class TasksListPage extends ConsumerWidget {
                     ),
                   )
                 : _TasksOfCategory(
-                    categoryId: selectedCategory!,
+                    categoryId: selectedCategory,
                     scaffoldContext: context,
                     onDeleteTask: (task) => _showDeleteTaskDialog(context, ref, task),
                   ),
@@ -388,7 +386,6 @@ class TasksListPage extends ConsumerWidget {
     WidgetRef ref,
     CategoryRow category,
   ) async {
-    final categoriesDao = ref.read(categoriesDaoProvider);
     final controller = TextEditingController(text: category.name);
     try {
       final name = await showDialog<String>(
@@ -421,8 +418,7 @@ class TasksListPage extends ConsumerWidget {
         ),
       );
       if (name != null && name.isNotEmpty && context.mounted) {
-        final dao = ref.read(categoriesDaoProvider);
-        await dao.renameCategory(category.id, name: name);
+        await ref.read(categoriesDaoProvider).renameCategory(category.id, name: name);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Kategoria zapisana')),
