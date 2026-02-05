@@ -5,6 +5,7 @@ import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
+import '../../../data/db/app_db.dart';
 import '../../../providers/app_db_provider.dart';
 import '../tasks_providers.dart';
 import 'widgets/task_list_item.dart';
@@ -127,6 +128,18 @@ class TasksListPage extends ConsumerWidget {
     );
   }
 
+  /// Otwiera dialog/sheet po zamknięciu obecnego bottom sheet (żeby overlay był poprawny).
+  static void _openAfterSheetClosed(
+    BuildContext context,
+    WidgetRef ref,
+    Future<void> Function() open,
+  ) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!context.mounted) return;
+      await open();
+    });
+  }
+
   static Future<void> _showManageCategoriesSheet(
     BuildContext context,
     WidgetRef ref,
@@ -191,7 +204,9 @@ class TasksListPage extends ConsumerWidget {
                               tooltip: 'Edytuj nazwę',
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                _showEditCategoryDialog(context, ref, category);
+                                _openAfterSheetClosed(context, ref, () async {
+                                  await _showEditCategoryDialog(context, ref, category);
+                                });
                               },
                             ),
                             IconButton(
@@ -199,7 +214,9 @@ class TasksListPage extends ConsumerWidget {
                               tooltip: 'Zmień kolor',
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                _showCategoryColorPicker(context, ref, category);
+                                _openAfterSheetClosed(context, ref, () async {
+                                  await _showCategoryColorPicker(context, ref, category);
+                                });
                               },
                             ),
                             IconButton(
@@ -210,7 +227,9 @@ class TasksListPage extends ConsumerWidget {
                               tooltip: 'Usuń kategorię',
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                _confirmDeleteCategory(context, ref, category);
+                                _openAfterSheetClosed(context, ref, () async {
+                                  await _confirmDeleteCategory(context, ref, category);
+                                });
                               },
                             ),
                           ],
@@ -346,8 +365,11 @@ class TasksListPage extends ConsumerWidget {
     final hexToSave = chosen.trim().startsWith('#') ? chosen.trim() : '#${chosen.trim()}';
     if (_hexEquals(hexToSave, category.colorHex)) return;
 
-    await categoriesDao.updateCategoryColor(category.id, hexToSave);
-    await tasksDao.setColorForCategory(category.id, hexToSave);
+    final db = ref.read(appDbProvider);
+    await db.transaction(() async {
+      await categoriesDao.updateCategoryColor(category.id, hexToSave);
+      await tasksDao.setColorForCategory(category.id, hexToSave);
+    });
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kolor kategorii zapisany')),
@@ -398,18 +420,14 @@ class TasksListPage extends ConsumerWidget {
           ],
         ),
       );
-      if (name != null && name.isNotEmpty) {
-        final categoryId = category.id;
-        final nameToSave = name;
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!context.mounted) return;
-          final dao = ref.read(categoriesDaoProvider);
-          await dao.renameCategory(categoryId, name: nameToSave);
-          if (!context.mounted) return;
+      if (name != null && name.isNotEmpty && context.mounted) {
+        final dao = ref.read(categoriesDaoProvider);
+        await dao.renameCategory(category.id, name: name);
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Kategoria zapisana')),
           );
-        });
+        }
       }
     } finally {
       controller.dispose();
@@ -425,8 +443,9 @@ class TasksListPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Usunąć kategorię?'),
-        content: const Text(
-          'Zadania w tej kategorii pozostaną, ale bez przypisanej kategorii. Tej operacji nie można cofnąć.',
+        content: Text(
+          'Czy na pewno chcesz usunąć kategorię ${category.name}? '
+          'Zostaną usunięte wszystkie wykonane zadania należące do tej kategorii.',
         ),
         actions: [
           TextButton(
@@ -447,19 +466,26 @@ class TasksListPage extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     final categoryId = category.id;
-    final refCopy = ref;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!context.mounted) return;
-      final tasksDao = refCopy.read(tasksDaoProvider);
-      final categoriesDao = refCopy.read(categoriesDaoProvider);
+    final db = ref.read(appDbProvider);
+    final tasksDao = ref.read(tasksDaoProvider);
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    final categoriesDao = ref.read(categoriesDaoProvider);
+
+    await db.transaction(() async {
+      final completedIds = await tasksDao.getCompletedTaskIdsInCategory(categoryId);
+      for (final taskId in completedIds) {
+        await sessionsDao.deleteSessionsByTaskId(taskId);
+        await tasksDao.deleteTask(taskId);
+      }
       await tasksDao.clearCategoryIdForCategory(categoryId);
       await categoriesDao.deleteCategory(categoryId);
-      refCopy.read(selectedCategoryProvider.notifier).state = null;
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kategoria usunięta')),
-      );
     });
+
+    if (!context.mounted) return;
+    ref.read(selectedCategoryProvider.notifier).state = null;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Kategoria usunięta')),
+    );
   }
 
   static Future<void> _showDeleteTaskDialog(

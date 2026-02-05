@@ -65,6 +65,14 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     return rows.length;
   }
 
+  /// Id zadań „wykonanych” (isArchived == true) w danej kategorii – do usunięcia przy usuwaniu kategorii.
+  Future<List<String>> getCompletedTaskIdsInCategory(String categoryId) async {
+    final rows = await (select(tasksTable)
+          ..where((t) => t.categoryId.equals(categoryId) & t.isArchived.equals(true)))
+        .get();
+    return rows.map((r) => r.id).toList();
+  }
+
   /// Zadania w danej kategorii (po categoryId).
   Future<List<TaskRow>> getByCategoryId(String categoryId, {bool includeArchived = false}) async {
     final q = select(tasksTable)
