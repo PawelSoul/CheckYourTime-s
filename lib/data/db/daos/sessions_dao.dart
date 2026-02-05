@@ -133,6 +133,11 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
   Future<int> deleteSessionsByTaskId(String taskId) {
     return (delete(sessionsTable)..where((s) => s.taskId.equals(taskId))).go();
   }
+
+  /// Usuwa wszystkie sesje z bazy (przed wyczyszczeniem zadań).
+  Future<int> deleteAllSessions() {
+    return delete(sessionsTable).go();
+  }
 }
 
 class SessionWithTask {

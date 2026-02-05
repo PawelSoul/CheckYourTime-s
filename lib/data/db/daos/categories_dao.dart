@@ -46,6 +46,11 @@ class CategoriesDao extends DatabaseAccessor<AppDb> with _$CategoriesDaoMixin {
   Future<int> deleteCategory(String id) {
     return (delete(categoriesTable)..where((c) => c.id.equals(id))).go();
   }
+
+  /// Usuwa wszystkie kategorie z bazy (wywołać po wyczyszczeniu zadań).
+  Future<int> deleteAllCategories() {
+    return delete(categoriesTable).go();
+  }
 }
 
 typedef CategoryRow = CategoriesTableData;

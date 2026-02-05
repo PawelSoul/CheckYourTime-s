@@ -147,6 +147,11 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     // Uwaga: z FK RESTRICT usunięcie taska z sesjami się nie uda.
     return (delete(tasksTable)..where((t) => t.id.equals(id))).go();
   }
+
+  /// Usuwa wszystkie zadania z bazy (wywołać po usunięciu sesji).
+  Future<int> deleteAllTasks() {
+    return delete(tasksTable).go();
+  }
 }
 
 /// Alias typów wygodnych do używania w kodzie UI/repo:

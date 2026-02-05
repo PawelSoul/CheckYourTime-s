@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/db/daos/categories_dao.dart';
+import '../../../data/db/daos/sessions_dao.dart';
+import '../../../data/db/daos/tasks_dao.dart';
+import '../../../providers/app_db_provider.dart';
 import '../../../providers/theme_provider.dart';
+import '../../calendar/application/calendar_providers.dart';
+import '../../tasks/presentation/tasks_list_page.dart';
+import '../../tasks/tasks_providers.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -32,8 +39,73 @@ class SettingsPage extends ConsumerWidget {
             subtitle: Text(themeMode.displayName),
             onTap: () => _showThemePicker(context, ref),
           ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Text(
+              'Dane',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_forever_outlined, color: Theme.of(context).colorScheme.error),
+            title: Text(
+              'Wyczyść wszystkie dane',
+              style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w500),
+            ),
+            subtitle: const Text('Usunie wszystkie kategorie, zadania i sesje. Nie można cofnąć.'),
+            onTap: () => _confirmClearAllData(context, ref),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _confirmClearAllData(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Wyczyścić całą bazę?'),
+        content: const Text(
+          'Zostaną usunięte wszystkie kategorie, zadania i sesje. Tej operacji nie można cofnąć.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Wyczyść wszystko'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final db = ref.read(appDbProvider);
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    final tasksDao = ref.read(tasksDaoProvider);
+    final categoriesDao = ref.read(categoriesDaoProvider);
+
+    await db.transaction(() async {
+      await sessionsDao.deleteAllSessions();
+      await tasksDao.deleteAllTasks();
+      await categoriesDao.deleteAllCategories();
+    });
+
+    if (!context.mounted) return;
+    ref.read(selectedCategoryProvider.notifier).state = null;
+    ref.invalidate(calendarSessionsProvider);
+    ref.invalidate(categoriesStreamProvider);
+    ref.invalidate(tasksStreamProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Wszystkie dane zostały usunięte')),
     );
   }
 
