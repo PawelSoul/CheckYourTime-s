@@ -139,12 +139,12 @@ class TasksListPage extends ConsumerWidget {
   }
 
   static Future<void> _showManageCategoriesSheet(
-    BuildContext context,
+    BuildContext scaffoldContext,
     WidgetRef ref,
   ) async {
     final categoriesAsync = ref.read(categoriesStreamProvider);
     await showModalBottomSheet<void>(
-      context: context,
+      context: scaffoldContext,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.5,
@@ -181,7 +181,7 @@ class TasksListPage extends ConsumerWidget {
                     controller: scrollController,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: categories.length,
-                    itemBuilder: (context, index) {
+                    itemBuilder: (_, index) {
                       final category = categories[index];
                       return ListTile(
                         leading: CircleAvatar(
@@ -202,8 +202,8 @@ class TasksListPage extends ConsumerWidget {
                               tooltip: 'Edytuj nazwę',
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                _openAfterSheetClosed(context, ref, () async {
-                                  await _showEditCategoryDialog(context, ref, category);
+                                _openAfterSheetClosed(scaffoldContext, ref, () async {
+                                  await _showEditCategoryDialog(scaffoldContext, ref, category);
                                 });
                               },
                             ),
@@ -212,8 +212,8 @@ class TasksListPage extends ConsumerWidget {
                               tooltip: 'Zmień kolor',
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                _openAfterSheetClosed(context, ref, () async {
-                                  await _showCategoryColorPicker(context, ref, category);
+                                _openAfterSheetClosed(scaffoldContext, ref, () async {
+                                  await _showCategoryColorPicker(scaffoldContext, ref, category);
                                 });
                               },
                             ),
@@ -225,8 +225,8 @@ class TasksListPage extends ConsumerWidget {
                               tooltip: 'Usuń kategorię',
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                _openAfterSheetClosed(context, ref, () async {
-                                  await _confirmDeleteCategory(context, ref, category);
+                                _openAfterSheetClosed(scaffoldContext, ref, () async {
+                                  await _confirmDeleteCategory(scaffoldContext, ref, category);
                                 });
                               },
                             ),
