@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/category_colors.dart';
+import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';

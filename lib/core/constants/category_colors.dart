@@ -39,11 +39,22 @@ class CategoryColors {
     return '#$h';
   }
 
-  static Color parse(String hex) {
+  /// Zamienia hex string (np. "#FFAA00" lub "FFAA00") na [Color].
+  /// Obsługuje: z/bez '#', 6 znaków (RGB) lub 8 znaków (ARGB).
+  /// Dla null, pustego lub nieprawidłowego stringa zwraca [Colors.grey].
+  static Color parse(String? hex) {
+    if (hex == null || hex.trim().isEmpty) return Colors.grey;
+    String h = hex.trim().replaceFirst('#', '');
+    if (h.isEmpty) return Colors.grey;
+    if (h.length == 6) {
+      h = 'FF$h'; // domyślna pełna nieprzezroczystość
+    }
+    if (h.length != 8) return Colors.grey;
     try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+      final value = int.parse(h, radix: 16);
+      return Color(value);
     } catch (_) {
-      return const Color(0xFF4F46E5);
+      return Colors.grey;
     }
   }
 }

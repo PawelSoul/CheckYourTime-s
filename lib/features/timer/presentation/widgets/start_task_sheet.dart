@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/category_colors.dart';
+import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../tasks/tasks_providers.dart';
 import '../../application/timer_controller.dart';
 
