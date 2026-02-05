@@ -117,7 +117,6 @@ class TasksListPage extends ConsumerWidget {
                 : _TasksOfCategory(
                     categoryId: selectedCategory!,
                     scaffoldContext: context,
-                    onEditTask: (task) => _showEditTaskDialog(context, ref, task),
                     onDeleteTask: (task) => _showDeleteTaskDialog(context, ref, task),
                   ),
           ),
@@ -372,66 +371,6 @@ class TasksListPage extends ConsumerWidget {
     });
   }
 
-  static Future<void> _showEditTaskDialog(
-    BuildContext context,
-    WidgetRef ref,
-    TaskRow task,
-  ) async {
-    final tasksDao = ref.read(tasksDaoProvider);
-    final controller = TextEditingController(text: task.name);
-    try {
-      final name = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Nazwa zadania'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Nazwa',
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (v) =>
-                Navigator.of(ctx).pop(v.trim().isEmpty ? null : v),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Anuluj'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final v = controller.text.trim();
-                Navigator.of(ctx).pop(v.isEmpty ? null : v);
-              },
-              child: const Text('Zapisz'),
-            ),
-          ],
-        ),
-      );
-      if (name != null && name.isNotEmpty && context.mounted) {
-        final taskId = task.id;
-        final nameToSave = name;
-        final ctx = context;
-        // Zapis w microtask; SnackBar w kolejnym microtask – po zakończeniu przebudowy listy (unikamy _dependents.isEmpty).
-        Future.microtask(() async {
-          if (!ctx.mounted) return;
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          await tasksDao.renameTask(taskId, name: nameToSave, nowMs: nowMs);
-        }).then((_) {
-          Future.microtask(() {
-            if (!ctx.mounted) return;
-            ScaffoldMessenger.of(ctx).showSnackBar(
-              const SnackBar(content: Text('Nazwa zapisana')),
-            );
-          });
-        });
-      }
-    } finally {
-      controller.dispose();
-    }
-  }
-
   static Future<void> _showDeleteTaskDialog(
     BuildContext context,
     WidgetRef ref,
@@ -479,13 +418,11 @@ class _TasksOfCategory extends ConsumerWidget {
   const _TasksOfCategory({
     required this.categoryId,
     required this.scaffoldContext,
-    required this.onEditTask,
     required this.onDeleteTask,
   });
 
   final String categoryId;
   final BuildContext scaffoldContext;
-  final void Function(TaskRow task) onEditTask;
   final void Function(TaskRow task) onDeleteTask;
 
   @override
@@ -516,7 +453,6 @@ class _TasksOfCategory extends ConsumerWidget {
           itemBuilder: (context, index) => TaskListItem(
             task: tasks[index],
             scaffoldContext: scaffoldContext,
-            onEditTask: onEditTask,
             onDeleteTask: onDeleteTask,
           ),
         );

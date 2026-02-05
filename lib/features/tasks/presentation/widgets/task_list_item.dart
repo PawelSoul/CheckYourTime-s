@@ -9,13 +9,11 @@ class TaskListItem extends ConsumerWidget {
     super.key,
     required this.task,
     required this.scaffoldContext,
-    required this.onEditTask,
     required this.onDeleteTask,
   });
 
   final TaskRow task;
   final BuildContext scaffoldContext;
-  final void Function(TaskRow task) onEditTask;
   final void Function(TaskRow task) onDeleteTask;
 
   static String _formatDateTime(int ms) {
@@ -46,7 +44,6 @@ class TaskListItem extends ConsumerWidget {
       onTap: () => _showTaskOptionsSheet(
         scaffoldContext,
         task,
-        onEditTask,
         onDeleteTask,
       ),
     );
@@ -55,7 +52,6 @@ class TaskListItem extends ConsumerWidget {
   static Future<void> _showTaskOptionsSheet(
     BuildContext scaffoldContext,
     TaskRow task,
-    void Function(TaskRow task) onEditTask,
     void Function(TaskRow task) onDeleteTask,
   ) async {
     final action = await showModalBottomSheet<String>(
@@ -75,11 +71,6 @@ class TaskListItem extends ConsumerWidget {
             ),
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edytuj nazwę'),
-              onTap: () => Navigator.of(ctx).pop('edit'),
-            ),
-            ListTile(
               leading: Icon(Icons.delete, color: Theme.of(ctx).colorScheme.error),
               title: Text(
                 'Usuń zadanie',
@@ -95,9 +86,7 @@ class TaskListItem extends ConsumerWidget {
 
     if (!scaffoldContext.mounted || action == null) return;
 
-    if (action == 'edit') {
-      onEditTask(task);
-    } else if (action == 'delete') {
+    if (action == 'delete') {
       onDeleteTask(task);
     }
   }

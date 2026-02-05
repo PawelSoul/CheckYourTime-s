@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../application/timer_controller.dart';
 import 'widgets/start_task_sheet.dart';
@@ -12,19 +11,9 @@ class TimerScreen extends ConsumerWidget {
     BuildContext context,
     TimerController controller,
   ) async {
-    final result = await controller.stop();
-    if (!context.mounted || result == null) return;
-
-    // Ekran nazwy: zapisz -> pop -> dopiero potem reset() (w microtask poniżej).
-    await context.push<bool>(
-      '/timer/name-task',
-      extra: <String, dynamic>{'taskId': result.taskId},
-    );
-
+    await controller.stop();
     if (!context.mounted) return;
-    // Reset timera DOPIERO PO zamknięciu ekranu nazwy (unikamy _dependents.isEmpty).
     Future.microtask(() => controller.reset());
-
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
