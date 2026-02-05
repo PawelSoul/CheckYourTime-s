@@ -14,6 +14,7 @@ class ShellPage extends StatelessWidget {
 
     if (location.startsWith('/timer')) return 1;
     if (location.startsWith('/calendar')) return 2;
+    if (location.startsWith('/settings')) return 3;
     return 0;
   }
 
@@ -27,6 +28,9 @@ class ShellPage extends StatelessWidget {
         break;
       case 2:
         context.go('/calendar');
+        break;
+      case 3:
+        context.go('/settings');
         break;
     }
   }
@@ -43,7 +47,7 @@ class ShellPage extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.list),
-            label: 'Tasks',
+            label: 'Zadania',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.timer),
@@ -51,7 +55,11 @@ class ShellPage extends StatelessWidget {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
-            label: 'Calendar',
+            label: 'Kalendarz',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Ustawienia',
           ),
         ],
       ),
