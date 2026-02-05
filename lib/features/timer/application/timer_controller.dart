@@ -51,10 +51,12 @@ class StopResult {
   final Duration duration;
 }
 
+/// Bez autoDispose – provider żyje przez całą sesję, unikamy crasha _dependents.isEmpty
+/// przy zamykaniu name_task_screen (dialog/ekran edycji nazwy).
 final timerControllerProvider =
-    NotifierProvider.autoDispose<TimerController, TimerState>(TimerController.new);
+    NotifierProvider<TimerController, TimerState>(TimerController.new);
 
-class TimerController extends AutoDisposeNotifier<TimerState> {
+class TimerController extends Notifier<TimerState> {
   Timer? _ticker;
   late Stopwatch _stopwatch;
   bool _disposed = false;
@@ -211,11 +213,17 @@ class TimerController extends AutoDisposeNotifier<TimerState> {
     );
 
     if (_disposed) return null;
-    state = TimerState.initial;
+    // Nie resetujemy stanu tutaj – reset() wywołuje UI DOPIERO PO zamknięciu dialogu/ekranu nazwy.
     return StopResult(taskId: taskId, duration: duration);
   }
 
-  /// Zmienia nazwę zadania (np. z ekranu edycji).
+  /// Resetuje stoper do stanu początkowego. Wywołać DOPIERO PO zamknięciu ekranu/dialogu nazwy (np. po Navigator.pop).
+  void reset() {
+    if (_disposed) return;
+    state = TimerState.initial;
+  }
+
+  /// Zmienia nazwę zadania (np. z ekranu edycji). Nie resetuje stanu timera.
   Future<void> setTaskName({
     required String taskId,
     required String name,

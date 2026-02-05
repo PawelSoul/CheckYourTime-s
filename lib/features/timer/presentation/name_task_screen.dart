@@ -33,11 +33,14 @@ class _NameTaskScreenState extends ConsumerState<NameTaskScreen> {
     if (name.isEmpty) return;
 
     setState(() => _saving = true);
+    // 1) Zapis nazwy do DB (setTaskName NIE resetuje timera).
     final timerNotifier = ref.read(timerControllerProvider.notifier);
     await timerNotifier.setTaskName(taskId: widget.taskId, name: name);
     if (!mounted) return;
     setState(() => _saving = false);
+    // 2) Najpierw zamykamy ekran (Navigator.pop).
     context.pop(true);
+    // 3) reset() timera wywołuje rodzic (TimerScreen) DOPIERO PO pop – np. w Future.microtask.
   }
 
   @override
