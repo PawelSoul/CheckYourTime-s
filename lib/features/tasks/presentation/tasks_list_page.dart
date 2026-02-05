@@ -410,13 +410,19 @@ class TasksListPage extends ConsumerWidget {
         ),
       );
       if (name != null && name.isNotEmpty && context.mounted) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        await tasksDao.renameTask(task.id, name: name, nowMs: nowMs);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        final taskId = task.id;
+        final nameToSave = name;
+        final ctx = context;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!ctx.mounted) return;
+          final dao = ref.read(tasksDaoProvider);
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          await dao.renameTask(taskId, name: nameToSave, nowMs: nowMs);
+          if (!ctx.mounted) return;
+          ScaffoldMessenger.of(ctx).showSnackBar(
             const SnackBar(content: Text('Nazwa zapisana')),
           );
-        }
+        });
       }
     } finally {
       controller.dispose();
