@@ -387,48 +387,16 @@ class TasksListPage extends ConsumerWidget {
     WidgetRef ref,
     CategoryRow category,
   ) async {
-    final controller = TextEditingController(text: category.name);
-    try {
-      final name = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Nazwa kategorii'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Nazwa',
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (v) =>
-                Navigator.of(ctx).pop(v.trim().isEmpty ? null : v),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Anuluj'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final v = controller.text.trim();
-                Navigator.of(ctx).pop(v.isEmpty ? null : v);
-              },
-              child: const Text('Zapisz'),
-            ),
-          ],
-        ),
-      );
-      if (name != null && name.isNotEmpty && context.mounted) {
-        await ref.read(categoriesDaoProvider).renameCategory(category.id, name: name);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Kategoria zapisana')),
-          );
-        }
-      }
-    } finally {
-      controller.dispose();
-    }
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => _EditCategoryDialogContent(category: category),
+    );
+    if (name == null || name.isEmpty || !context.mounted) return;
+    await ref.read(categoriesDaoProvider).renameCategory(category.id, name: name);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Kategoria zapisana')),
+    );
   }
 
   static Future<void> _confirmDeleteCategory(
@@ -632,6 +600,64 @@ class _ColorPickerDot extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Dialog edycji nazwy kategorii – controller w initState/dispose, unika crasha po dispose.
+class _EditCategoryDialogContent extends StatefulWidget {
+  const _EditCategoryDialogContent({required this.category});
+
+  final CategoryRow category;
+
+  @override
+  State<_EditCategoryDialogContent> createState() => _EditCategoryDialogContentState();
+}
+
+class _EditCategoryDialogContentState extends State<_EditCategoryDialogContent> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.category.name);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nazwa kategorii'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Nazwa',
+          border: OutlineInputBorder(),
+        ),
+        onSubmitted: (v) {
+          final trimmed = v.trim();
+          if (trimmed.isNotEmpty) Navigator.of(context).pop(trimmed);
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final v = _controller.text.trim();
+            Navigator.of(context).pop(v.isEmpty ? null : v);
+          },
+          child: const Text('Zapisz'),
+        ),
+      ],
     );
   }
 }
