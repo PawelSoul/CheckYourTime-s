@@ -7,6 +7,7 @@ import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
 import '../tasks_providers.dart';
+import 'widgets/category_glass_tile.dart';
 import 'widgets/task_glass_card.dart';
 
 class TasksListPage extends ConsumerWidget {
@@ -57,26 +58,14 @@ class TasksListPage extends ConsumerWidget {
                     );
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     itemCount: categories.length,
                     itemBuilder: (context, index) {
                       final category = categories[index];
                       final isSelected = selectedCategory == category.id;
-                      return ListTile(
-                        selected: isSelected,
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: CategoryColors.parse(category.colorHex),
-                          child: Text(
-                            category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
-                            style: const TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                        ),
-                        title: Text(
-                          category.name,
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      return CategoryGlassTile(
+                        category: category,
+                        isSelected: isSelected,
                         onTap: () =>
                             ref.read(selectedCategoryProvider.notifier).state = category.id,
                         onLongPress: () =>
