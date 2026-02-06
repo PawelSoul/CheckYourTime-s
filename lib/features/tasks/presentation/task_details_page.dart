@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
 import 'package:checkyourtime/core/widgets/glass_card.dart';
 import '../../../data/db/daos/tasks_dao.dart';
+import '../../../providers/app_db_provider.dart';
+import '../../calendar/application/calendar_providers.dart';
+import 'widgets/task_list_item.dart';
 
 /// Ekran szczegółów zadania – otwierany po kliknięciu karty na liście.
-class TaskDetailsPage extends StatelessWidget {
+class TaskDetailsPage extends ConsumerStatefulWidget {
   const TaskDetailsPage({
     super.key,
     required this.task,
@@ -17,8 +21,21 @@ class TaskDetailsPage extends StatelessWidget {
   final String? categoryColorHex;
 
   @override
+  ConsumerState<TaskDetailsPage> createState() => _TaskDetailsPageState();
+}
+
+class _TaskDetailsPageState extends ConsumerState<TaskDetailsPage> {
+  late TaskRow _task;
+
+  @override
+  void initState() {
+    super.initState();
+    _task = widget.task;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final colorHex = categoryColorHex ?? task.colorHex;
+    final colorHex = widget.categoryColorHex ?? _task.colorHex;
     final baseColor = CategoryColors.parse(colorHex);
     final accentColor = _accentColor(baseColor);
 
@@ -27,14 +44,14 @@ class TaskDetailsPage extends StatelessWidget {
         title: const Text('Szczegóły zadania'),
         actions: [
           IconButton(
-            icon: const Text('✏️', style: TextStyle(fontSize: 20)),
-            tooltip: 'Edycja (wkrótce)',
-            onPressed: null,
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edytuj nazwę',
+            onPressed: () => _handleEdit(context),
           ),
           IconButton(
-            icon: const Text('🗑', style: TextStyle(fontSize: 20)),
-            tooltip: 'Usuń (wkrótce)',
-            onPressed: null,
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Usuń zadanie',
+            onPressed: () => _handleDelete(context),
           ),
         ],
       ),
@@ -42,17 +59,82 @@ class TaskDetailsPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _HeaderSection(
-            taskName: task.name,
-            createdAtMs: task.createdAt,
+            taskName: _task.name,
+            createdAtMs: _task.createdAt,
             accentColor: accentColor,
           ),
           const SizedBox(height: 20),
           const _StatisticsSection(),
           const SizedBox(height: 20),
-          const _ActionsSection(),
+          _ActionsSection(
+            onEdit: () => _handleEdit(context),
+            onDelete: () => _handleDelete(context),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleEdit(BuildContext context) async {
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => EditTaskDialogContent(task: _task),
+    );
+    if (newName == null || newName.trim().isEmpty || !mounted) return;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await ref.read(tasksDaoProvider).renameTask(
+          _task.id,
+          name: newName.trim(),
+          nowMs: nowMs,
+        );
+
+    if (!mounted) return;
+    setState(() {
+      _task = _task.copyWith(name: newName.trim(), updatedAt: nowMs);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nazwa zadania zapisana')),
+    );
+  }
+
+  Future<void> _handleDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Usunąć zadanie?'),
+        content: const Text(
+          'Zadanie i powiązane sesje zostaną trwale usunięte. Tej operacji nie można cofnąć.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Usuń'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final tasksDao = ref.read(tasksDaoProvider);
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    await sessionsDao.deleteSessionsByTaskId(_task.id);
+    await tasksDao.deleteTask(_task.id);
+
+    if (!mounted) return;
+    ref.invalidate(calendarSessionsProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Zadanie usunięte')),
+    );
+    Navigator.of(context).pop();
   }
 
   static Color _accentColor(Color base) {
@@ -165,7 +247,13 @@ class _StatisticsSection extends StatelessWidget {
 }
 
 class _ActionsSection extends StatelessWidget {
-  const _ActionsSection();
+  const _ActionsSection({
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -184,19 +272,21 @@ class _ActionsSection extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: FilledButton(
-                  onPressed: null,
-                  child: const Text('Edytuj'),
+                child: FilledButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  label: const Text('Edytuj'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FilledButton(
-                  onPressed: null,
+                child: FilledButton.icon(
+                  onPressed: onDelete,
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.error,
                   ),
-                  child: const Text('Usuń'),
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  label: const Text('Usuń'),
                 ),
               ),
             ],
