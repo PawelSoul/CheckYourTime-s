@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/db/daos/sessions_dao.dart';
+import '../../domain/calendar_models.dart';
 
 class MonthView extends StatelessWidget {
   const MonthView({
     super.key,
     required this.month,
     required this.sessions,
+    required this.dayDots,
     required this.selectedDay,
     required this.onDaySelected,
   });
 
   final DateTime month;
   final List<SessionWithTask> sessions;
+  final Map<String, DayDotsVm> dayDots;
   final DateTime? selectedDay;
   final ValueChanged<DateTime> onDaySelected;
 
@@ -36,7 +39,6 @@ class MonthView extends StatelessWidget {
     final first = DateTime(year, monthIndex, 1);
     final last = DateTime(year, monthIndex + 1, 0);
     final daysInMonth = last.day;
-    // Poniedziałek = 1, więc offset do pierwszego dnia (0 = Pn, 6 = Nd)
     final firstWeekday = first.weekday - 1;
     final padding = firstWeekday;
     final totalCells = padding + daysInMonth;
@@ -45,7 +47,6 @@ class MonthView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Nagłówki dni tygodnia
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -64,7 +65,6 @@ class MonthView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        // Siatka dni
         Table(
           border: TableBorder.symmetric(
             inside: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
@@ -80,6 +80,7 @@ class MonthView extends StatelessWidget {
                       daysInMonth: daysInMonth,
                       year: year,
                       monthIndex: monthIndex,
+                      dayDots: dayDots,
                       hasSessions: (int day) {
                         if (day < 1 || day > daysInMonth) return false;
                         final d = DateTime(year, monthIndex, day);
@@ -114,6 +115,7 @@ class _DayCell extends StatelessWidget {
     required this.daysInMonth,
     required this.year,
     required this.monthIndex,
+    required this.dayDots,
     required this.hasSessions,
     required this.isSelected,
     required this.onTap,
@@ -124,9 +126,12 @@ class _DayCell extends StatelessWidget {
   final int daysInMonth;
   final int year;
   final int monthIndex;
+  final Map<String, DayDotsVm> dayDots;
   final bool Function(int day) hasSessions;
   final bool Function(int day) isSelected;
   final void Function(int day) onTap;
+
+  static const double _dotSize = 5;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +139,10 @@ class _DayCell extends StatelessWidget {
     final isCurrentMonth = dayNumber >= 1 && dayNumber <= daysInMonth;
     final day = dayNumber;
     final selected = isCurrentMonth && isSelected(day);
-    final withSessions = isCurrentMonth && hasSessions(day);
+    final dotsVm = isCurrentMonth && day >= 1 && day <= daysInMonth
+        ? dayDots[dateKey(DateTime(year, monthIndex, day))]
+        : null;
+    final hasDots = dotsVm != null && (dotsVm.colors.isNotEmpty || dotsVm.hasMore);
 
     return InkWell(
       onTap: isCurrentMonth ? () => onTap(day) : null,
@@ -161,16 +169,38 @@ class _DayCell extends StatelessWidget {
                         : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
             ),
-            if (withSessions)
-              Container(
-                margin: const EdgeInsets.only(top: 2),
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
+            if (hasDots) ...[
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < dotsVm!.colors.length; i++)
+                    Container(
+                      width: _dotSize,
+                      height: _dotSize,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                      decoration: BoxDecoration(
+                        color: dotsVm.colors[i],
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  if (dotsVm.hasMore)
+                    Tooltip(
+                      message: 'więcej',
+                      child: Container(
+                        width: _dotSize,
+                        height: _dotSize,
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
               ),
+            ],
           ],
         ),
       ),

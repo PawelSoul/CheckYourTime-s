@@ -46,6 +46,7 @@ class CalendarPage extends ConsumerWidget {
       ),
       body: sessionsAsync.when(
         data: (sessions) {
+          final dayDots = ref.watch(calendarDayDotsProvider);
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -54,6 +55,7 @@ class CalendarPage extends ConsumerWidget {
                 MonthView(
                   month: month,
                   sessions: sessions,
+                  dayDots: dayDots,
                   selectedDay: selectedDay,
                   onDaySelected: (day) {
                     ref.read(selectedDayProvider.notifier).state = day;
