@@ -12,7 +12,16 @@ class GroupedByCategoryView extends StatelessWidget {
   static String _timeStr(DateTime d) {
     final h = d.hour.toString().padLeft(2, '0');
     final m = d.minute.toString().padLeft(2, '0');
-    return '$h:$m';
+    final s = d.second.toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  static String _formatDuration(int sec) {
+    final m = sec ~/ 60;
+    final s = sec % 60;
+    if (m > 0 && s > 0) return '$m min $s s';
+    if (m > 0) return '$m min';
+    return '$s s';
   }
 
   @override
@@ -26,7 +35,8 @@ class GroupedByCategoryView extends StatelessWidget {
       itemCount: groups.length,
       itemBuilder: (context, index) {
         final group = groups[index];
-        final totalStr = '${group.totalMinutes} min';
+        final totalSec = group.items.fold<int>(0, (sum, i) => sum + i.durationSec);
+        final totalStr = _formatDuration(totalSec);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -62,15 +72,15 @@ class GroupedByCategoryView extends StatelessWidget {
                 const SizedBox(height: 12),
                 ...group.items.map((item) {
                   final timeStr = item.endAt != null
-                      ? '${_timeStr(item.startAt)}–${_timeStr(item.endAt!)}'
-                      : _timeStr(item.startAt);
+                      ? '${_timeStr(item.startAt)}–${_timeStr(item.endAt!)} • ${_formatDuration(item.durationSec)}'
+                      : '${_timeStr(item.startAt)} • ${_formatDuration(item.durationSec)}';
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
-                          width: 70,
+                          width: 130,
                           child: Text(
                             timeStr,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(

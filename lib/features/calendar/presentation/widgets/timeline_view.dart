@@ -12,12 +12,16 @@ class TimelineView extends StatelessWidget {
   static String _timeStr(DateTime d) {
     final h = d.hour.toString().padLeft(2, '0');
     final m = d.minute.toString().padLeft(2, '0');
-    return '$h:$m';
+    final s = d.second.toString().padLeft(2, '0');
+    return '$h:$m:$s';
   }
 
   static String _formatDuration(int sec) {
     final m = sec ~/ 60;
-    return '$m min';
+    final s = sec % 60;
+    if (m > 0 && s > 0) return '$m min $s s';
+    if (m > 0) return '$m min';
+    return '$s s';
   }
 
   @override
