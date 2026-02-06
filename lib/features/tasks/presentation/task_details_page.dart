@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
 import 'package:checkyourtime/core/widgets/glass_card.dart';
-import '../../data/db/daos/tasks_dao.dart';
+import '../../../data/db/daos/tasks_dao.dart';
 
 /// Ekran szczegółów zadania – otwierany po kliknięciu karty na liście.
 class TaskDetailsPage extends StatelessWidget {
