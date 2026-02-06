@@ -7,7 +7,7 @@ import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
 import '../tasks_providers.dart';
-import 'widgets/task_list_item.dart';
+import 'widgets/task_glass_card.dart';
 
 class TasksListPage extends ConsumerWidget {
   const TasksListPage({super.key});
@@ -116,11 +116,7 @@ class TasksListPage extends ConsumerWidget {
                       ],
                     ),
                   )
-                : _TasksOfCategory(
-                    categoryId: selectedCategory,
-                    scaffoldContext: context,
-                    onDeleteTask: (task) => _showDeleteTaskDialog(context, ref, task),
-                  ),
+                : _TasksOfCategory(categoryId: selectedCategory),
           ),
         ],
       ),
@@ -499,15 +495,9 @@ class TasksListPage extends ConsumerWidget {
 }
 
 class _TasksOfCategory extends ConsumerWidget {
-  const _TasksOfCategory({
-    required this.categoryId,
-    required this.scaffoldContext,
-    required this.onDeleteTask,
-  });
+  const _TasksOfCategory({required this.categoryId});
 
   final String categoryId;
-  final BuildContext scaffoldContext;
-  final void Function(TaskRow task) onDeleteTask;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -535,12 +525,10 @@ class _TasksOfCategory extends ConsumerWidget {
         final categoryColorHex = category?.colorHex;
 
         return ListView.builder(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           itemCount: tasks.length,
-          itemBuilder: (context, index) => TaskListItem(
+          itemBuilder: (context, index) => TaskGlassCard(
             task: tasks[index],
-            scaffoldContext: scaffoldContext,
-            onDeleteTask: onDeleteTask,
             categoryColorHex: categoryColorHex,
           ),
         );
