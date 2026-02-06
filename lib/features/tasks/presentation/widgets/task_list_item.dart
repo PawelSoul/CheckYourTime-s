@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../../data/db/daos/tasks_dao.dart';
+import '../../../../providers/app_db_provider.dart';
 
 class TaskListItem extends ConsumerWidget {
   const TaskListItem({
@@ -47,6 +48,7 @@ class TaskListItem extends ConsumerWidget {
       ),
       onTap: () => _showTaskOptionsSheet(
         scaffoldContext,
+        ref,
         task,
         onDeleteTask,
       ),
@@ -55,6 +57,7 @@ class TaskListItem extends ConsumerWidget {
 
   static Future<void> _showTaskOptionsSheet(
     BuildContext scaffoldContext,
+    WidgetRef ref,
     TaskRow task,
     void Function(TaskRow task) onDeleteTask,
   ) async {
@@ -75,6 +78,11 @@ class TaskListItem extends ConsumerWidget {
             ),
             const Divider(height: 1),
             ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edytuj nazwę'),
+              onTap: () => Navigator.of(ctx).pop('edit'),
+            ),
+            ListTile(
               leading: Icon(Icons.delete, color: Theme.of(ctx).colorScheme.error),
               title: Text(
                 'Usuń zadanie',
@@ -90,9 +98,86 @@ class TaskListItem extends ConsumerWidget {
 
     if (!scaffoldContext.mounted || action == null) return;
 
-    if (action == 'delete') {
+    if (action == 'edit') {
+      await _showEditTaskDialog(scaffoldContext, ref, task);
+    } else if (action == 'delete') {
       onDeleteTask(task);
     }
   }
 
+  static Future<void> _showEditTaskDialog(
+    BuildContext context,
+    WidgetRef ref,
+    TaskRow task,
+  ) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => _EditTaskDialogContent(task: task),
+    );
+    if (name == null || name.isEmpty || !context.mounted) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await ref.read(tasksDaoProvider).renameTask(task.id, name: name, nowMs: nowMs);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nazwa zadania zapisana')),
+    );
+  }
+}
+
+/// Dialog edycji nazwy zadania – controller w initState/dispose (jak przy kategorii).
+class _EditTaskDialogContent extends StatefulWidget {
+  const _EditTaskDialogContent({required this.task});
+
+  final TaskRow task;
+
+  @override
+  State<_EditTaskDialogContent> createState() => _EditTaskDialogContentState();
+}
+
+class _EditTaskDialogContentState extends State<_EditTaskDialogContent> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.task.name);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nazwa zadania'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Nazwa',
+          border: OutlineInputBorder(),
+        ),
+        onSubmitted: (v) {
+          final trimmed = v.trim();
+          if (trimmed.isNotEmpty) Navigator.of(context).pop(trimmed);
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final v = _controller.text.trim();
+            Navigator.of(context).pop(v.isEmpty ? null : v);
+          },
+          child: const Text('Zapisz'),
+        ),
+      ],
+    );
+  }
 }
