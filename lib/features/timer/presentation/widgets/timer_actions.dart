@@ -24,10 +24,23 @@ class TimerActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final buttons = <Widget>[];
+    final softFilled = FilledButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      backgroundColor: Colors.white.withOpacity(0.08),
+      foregroundColor: Theme.of(context).colorScheme.onSurface,
+    );
+    final softOutlined = OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      side: BorderSide(color: Colors.white.withOpacity(0.15)),
+      foregroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.9),
+    );
 
     if (isIdle) {
       buttons.add(
         FilledButton(
+          style: softFilled,
           onPressed: onStart,
           child: const Text('Start'),
         ),
@@ -37,10 +50,12 @@ class TimerActions extends StatelessWidget {
     if (isRunning) {
       buttons.addAll([
         FilledButton(
+          style: softFilled,
           onPressed: onPause,
           child: const Text('Pause'),
         ),
         OutlinedButton(
+          style: softOutlined,
           onPressed: onStop,
           child: const Text('Stop & Save'),
         ),
@@ -50,10 +65,12 @@ class TimerActions extends StatelessWidget {
     if (isPaused) {
       buttons.addAll([
         FilledButton(
+          style: softFilled,
           onPressed: onResume,
           child: const Text('Resume'),
         ),
         OutlinedButton(
+          style: softOutlined,
           onPressed: onStop,
           child: const Text('Stop & Save'),
         ),

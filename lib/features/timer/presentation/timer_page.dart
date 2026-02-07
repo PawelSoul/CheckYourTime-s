@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/timer_controller.dart';
+import '../application/timer_view_settings.dart';
+import 'widgets/analog_stopwatch_view.dart';
 import 'widgets/start_task_sheet.dart';
+import 'widgets/sessions_timeline.dart';
 import 'widgets/timer_actions.dart';
 import 'widgets/timer_clock.dart';
+import 'widgets/timer_quick_toggle.dart';
 
 class TimerPage extends ConsumerWidget {
   const TimerPage({super.key});
@@ -13,6 +17,7 @@ class TimerPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(timerControllerProvider);
     final controller = ref.read(timerControllerProvider.notifier);
+    final viewSettings = ref.watch(timerViewSettingsProvider);
 
     final isIdle = state.activeSessionId == null;
     final isRunning = state.isRunning;
@@ -25,14 +30,17 @@ class TimerPage extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 16),
+            const TimerQuickToggle(),
+            const SizedBox(height: 4),
             Text(
               isIdle ? 'Naciśnij Start, żeby zacząć' : 'Sesja w toku',
               style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
-            TimerClock(elapsed: state.elapsed),
+            const SizedBox(height: 8),
+            viewSettings.viewMode == TimerViewMode.analog
+                ? AnalogStopwatchView(elapsed: state.elapsed)
+                : TimerClock(elapsed: state.elapsed),
             const Spacer(),
             TimerActions(
               isIdle: isIdle,
@@ -42,6 +50,13 @@ class TimerPage extends ConsumerWidget {
               onPause: () => controller.pause(),
               onResume: () => controller.resume(),
               onStop: () => _onStop(context, controller),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: const SessionsTimeline(),
+              ),
             ),
           ],
         ),
