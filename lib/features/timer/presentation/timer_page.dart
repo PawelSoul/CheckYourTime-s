@@ -5,7 +5,6 @@ import '../application/timer_controller.dart';
 import '../application/timer_view_settings.dart';
 import 'widgets/analog_stopwatch_view.dart';
 import 'widgets/start_task_sheet.dart';
-import 'widgets/sessions_timeline.dart';
 import 'widgets/timer_actions.dart';
 import 'widgets/timer_clock.dart';
 import 'widgets/timer_quick_toggle.dart';
@@ -57,13 +56,6 @@ class TimerPage extends ConsumerWidget {
               onResume: () => controller.resume(),
               onStop: () => _onStop(context, controller),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: const SessionsTimeline(),
-              ),
-            ),
           ],
         ),
       ),
@@ -74,69 +66,13 @@ class TimerPage extends ConsumerWidget {
     BuildContext context,
     TimerController controller,
   ) async {
-    final result = await controller.stop();
-    if (!context.mounted || result == null) return;
-
-    final name = await _showNameDialog(context, result.duration);
+    await controller.stop();
     if (!context.mounted) return;
-
-    if (name != null && name.trim().isNotEmpty) {
-      await controller.setTaskName(taskId: result.taskId, name: name.trim());
-    }
-
+    Future.microtask(() => controller.reset());
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sesja zapisana')),
       );
-    }
-  }
-
-  Future<String?> _showNameDialog(BuildContext context, Duration duration) async {
-    final textController = TextEditingController();
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    final durationStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
-
-    try {
-      return await showDialog<String>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Nazwa zadania'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Czas sesji: $durationStr', style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 16),
-              TextField(
-                controller: textController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Nazwa',
-                  hintText: 'np. Nauka / Gotowanie',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (value) => Navigator.of(context).pop(value.trim().isEmpty ? null : value),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Anuluj'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = textController.text.trim();
-                Navigator.of(context).pop(name.isEmpty ? null : name);
-              },
-              child: const Text('Zapisz'),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      textController.dispose();
     }
   }
 }
