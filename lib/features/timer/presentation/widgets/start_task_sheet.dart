@@ -6,12 +6,13 @@ import '../../../tasks/tasks_providers.dart';
 import '../../application/timer_controller.dart';
 
 /// Bottom sheet: wybór kategorii lub utworzenie nowej. Po wyborze start odliczania.
-void showStartTaskSheet(
+/// Zwraca Future, który kończy się po zamknięciu sheetu.
+Future<void> showStartTaskSheet(
   BuildContext context,
   WidgetRef ref, {
   VoidCallback? onTaskSelected,
 }) {
-  showModalBottomSheet<void>(
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (ctx) => DraggableScrollableSheet(

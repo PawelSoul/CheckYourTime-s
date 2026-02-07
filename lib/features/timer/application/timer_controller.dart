@@ -16,6 +16,7 @@ class TimerState {
     required this.elapsed,
     this.activeSessionId,
     this.activeTaskId,
+    this.activeCategoryId,
     this.startedAt,
   });
 
@@ -24,6 +25,8 @@ class TimerState {
 
   final String? activeSessionId;
   final String? activeTaskId;
+  /// Id kategorii aktywnej sesji – do koloru i chipa w UI.
+  final String? activeCategoryId;
   final DateTime? startedAt;
 
   TimerState copyWith({
@@ -31,6 +34,7 @@ class TimerState {
     Duration? elapsed,
     String? activeSessionId,
     String? activeTaskId,
+    String? activeCategoryId,
     DateTime? startedAt,
   }) {
     return TimerState(
@@ -38,6 +42,7 @@ class TimerState {
       elapsed: elapsed ?? this.elapsed,
       activeSessionId: activeSessionId ?? this.activeSessionId,
       activeTaskId: activeTaskId ?? this.activeTaskId,
+      activeCategoryId: activeCategoryId ?? this.activeCategoryId,
       startedAt: startedAt ?? this.startedAt,
     );
   }
@@ -138,6 +143,7 @@ class TimerController extends Notifier<TimerState> {
       elapsed: Duration.zero,
       activeSessionId: sessionId,
       activeTaskId: taskId,
+      activeCategoryId: categoryId,
       startedAt: now,
     );
   }

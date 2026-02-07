@@ -42,6 +42,7 @@ class AnalogStopwatchView extends ConsumerWidget {
               painter: AnalogStopwatchPainter(
                 elapsed: elapsed,
                 handsMode: settings.analogHandsMode,
+                numbersStyle: settings.analogNumbersStyle,
                 textColor: textColor,
               ),
             ),

@@ -128,6 +128,44 @@ class TimerQuickToggle extends ConsumerWidget {
                   Navigator.of(ctx).pop();
                 },
               ),
+              const SizedBox(height: 16),
+              Text(
+                'Styl cyfer',
+                style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                title: const Text('Duże i czytelne'),
+                leading: Radio<AnalogNumbersStyle>(
+                  value: AnalogNumbersStyle.large,
+                  groupValue: ref.read(timerViewSettingsProvider).analogNumbersStyle,
+                  onChanged: (v) {
+                    if (v != null) notifier.setAnalogNumbersStyle(v);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+                onTap: () {
+                  notifier.setAnalogNumbersStyle(AnalogNumbersStyle.large);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              ListTile(
+                title: const Text('Subtelne'),
+                leading: Radio<AnalogNumbersStyle>(
+                  value: AnalogNumbersStyle.subtle,
+                  groupValue: ref.read(timerViewSettingsProvider).analogNumbersStyle,
+                  onChanged: (v) {
+                    if (v != null) notifier.setAnalogNumbersStyle(v);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+                onTap: () {
+                  notifier.setAnalogNumbersStyle(AnalogNumbersStyle.subtle);
+                  Navigator.of(ctx).pop();
+                },
+              ),
             ],
           ),
         ),

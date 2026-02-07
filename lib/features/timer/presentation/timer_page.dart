@@ -3,24 +3,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/timer_controller.dart';
 import '../application/timer_view_settings.dart';
+import '../../tasks/tasks_providers.dart';
 import 'widgets/analog_stopwatch_view.dart';
+import 'widgets/category_chip.dart';
+import 'widgets/segmented_hour_progress_bar.dart';
 import 'widgets/start_task_sheet.dart';
-import 'widgets/timer_actions.dart';
+import 'widgets/timer_control_layer.dart';
 import 'widgets/timer_clock.dart';
 import 'widgets/timer_quick_toggle.dart';
 
-class TimerPage extends ConsumerWidget {
+class TimerPage extends ConsumerStatefulWidget {
   const TimerPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TimerPage> createState() => _TimerPageState();
+}
+
+class _TimerPageState extends ConsumerState<TimerPage> {
+  final GlobalKey<TimerControlLayerState> _controlLayerKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(timerControllerProvider);
     final controller = ref.read(timerControllerProvider.notifier);
     final viewSettings = ref.watch(timerViewSettingsProvider);
+    final category = state.activeCategoryId != null
+        ? ref.watch(categoryByIdProvider(state.activeCategoryId!))
+        : null;
 
     final isIdle = state.activeSessionId == null;
     final isRunning = state.isRunning;
     final isPaused = state.activeSessionId != null && !state.isRunning;
+    final categoryName = category?.name ?? 'Brak kategorii';
+    final categoryColorHex = category?.colorHex;
 
     return Scaffold(
       appBar: AppBar(
@@ -34,29 +49,47 @@ class TimerPage extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              isIdle ? 'Naciśnij Start, żeby zacząć' : 'Sesja w toku',
-              style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            viewSettings.viewMode == TimerViewMode.analog
-                ? AnalogStopwatchView(elapsed: state.elapsed)
-                : TimerClock(elapsed: state.elapsed),
-            const Spacer(),
-            TimerActions(
-              isIdle: isIdle,
-              isRunning: isRunning,
-              isPaused: isPaused,
-              onStart: () => showStartTaskSheet(context, ref),
-              onPause: () => controller.pause(),
-              onResume: () => controller.resume(),
-              onStop: () => _onStop(context, controller),
-            ),
-          ],
+        child: GestureDetector(
+          onTap: () => _controlLayerKey.currentState?.showControls(),
+          behavior: HitTestBehavior.opaque,
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              viewSettings.viewMode == TimerViewMode.analog
+                  ? AnalogStopwatchView(elapsed: state.elapsed)
+                  : TimerClock(elapsed: state.elapsed),
+              if (state.activeCategoryId != null) ...[
+                const SizedBox(height: 12),
+                CategoryChip(
+                  label: categoryName,
+                  colorHex: categoryColorHex,
+                ),
+              ],
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: TimerControlLayer(
+                  key: _controlLayerKey,
+                  isIdle: isIdle,
+                  isRunning: isRunning,
+                  isPaused: isPaused,
+                  categoryColorHex: categoryColorHex,
+                  categoryName: categoryName,
+                  onStart: () => showStartTaskSheet(context, ref),
+                  onPause: () => controller.pause(),
+                  onResume: () => controller.resume(),
+                  onStop: () => _onStop(context, controller),
+                  onTapScreen: () => _controlLayerKey.currentState?.showControls(),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SegmentedHourProgressBar(
+                elapsed: state.elapsed,
+                categoryColorHex: categoryColorHex,
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );

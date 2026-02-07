@@ -8,11 +8,13 @@ class AnalogStopwatchPainter extends CustomPainter {
   AnalogStopwatchPainter({
     required this.elapsed,
     required this.handsMode,
+    required this.numbersStyle,
     required this.textColor,
   });
 
   final Duration elapsed;
   final AnalogHandsMode handsMode;
+  final AnalogNumbersStyle numbersStyle;
   final Color textColor;
 
   static const double _twoPi = 2 * math.pi;
@@ -55,21 +57,22 @@ class AnalogStopwatchPainter extends CustomPainter {
   }
 
   void _drawNumbers(Canvas canvas, Offset center, double radius) {
-    const fontSize = 13.0;
+    final fontSize = numbersStyle == AnalogNumbersStyle.large ? 14.0 : 11.0;
+    final opacity = numbersStyle == AnalogNumbersStyle.large ? 0.9 : 0.5;
     final numberRadius = radius - 22;
     for (var i = 1; i <= 12; i++) {
       final angle = _hourToRadians(i);
       final x = center.dx + numberRadius * math.sin(angle);
       final y = center.dy - numberRadius * math.cos(angle);
-      _drawText(canvas, i.toString(), Offset(x, y), fontSize);
+      _drawText(canvas, i.toString(), Offset(x, y), fontSize, opacity);
     }
   }
 
-  void _drawText(Canvas canvas, String text, Offset at, double fontSize) {
+  void _drawText(Canvas canvas, String text, Offset at, double fontSize, [double opacity = 0.85]) {
     final span = TextSpan(
       text: text,
       style: TextStyle(
-        color: textColor.withOpacity(0.85),
+        color: textColor.withOpacity(opacity),
         fontSize: fontSize,
         fontWeight: FontWeight.w500,
       ),
@@ -162,6 +165,7 @@ class AnalogStopwatchPainter extends CustomPainter {
   bool shouldRepaint(AnalogStopwatchPainter oldDelegate) {
     return oldDelegate.elapsed != elapsed ||
         oldDelegate.handsMode != handsMode ||
+        oldDelegate.numbersStyle != numbersStyle ||
         oldDelegate.textColor != textColor;
   }
 }

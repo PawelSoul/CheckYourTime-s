@@ -29,8 +29,15 @@ class TimerClock extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         text,
-        style: Theme.of(context).textTheme.displayMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+        style: Theme.of(context).textTheme.displayLarge?.copyWith(
+              fontSize: 58,
+              fontWeight: FontWeight.w300,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ) ??
+            const TextStyle(
+              fontSize: 58,
+              fontWeight: FontWeight.w300,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
       ),
     );
