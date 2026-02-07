@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../application/timer_view_settings.dart';
+import '../../application/timer_view_settings.dart';
 
 class AnalogStopwatchPainter extends CustomPainter {
   AnalogStopwatchPainter({

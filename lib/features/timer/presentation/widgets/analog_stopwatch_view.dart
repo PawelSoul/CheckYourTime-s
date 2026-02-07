@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../application/timer_view_settings.dart';
+import '../../application/timer_view_settings.dart';
 import 'analog_stopwatch_painter.dart';
 
 class AnalogStopwatchView extends ConsumerWidget {

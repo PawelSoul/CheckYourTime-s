@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../application/timer_view_settings.dart';
+import '../../application/timer_view_settings.dart';
 
 class TimerQuickToggle extends ConsumerWidget {
   const TimerQuickToggle({super.key});

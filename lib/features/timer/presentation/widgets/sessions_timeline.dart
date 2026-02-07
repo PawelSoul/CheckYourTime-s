@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/widgets/glass_card.dart';
-import '../../../data/db/daos/categories_dao.dart';
-import '../../../data/db/daos/sessions_dao.dart';
-import '../../tasks/tasks_providers.dart';
-import '../application/recent_sessions_provider.dart';
+import '../../../../data/db/daos/categories_dao.dart';
+import '../../../../data/db/daos/sessions_dao.dart';
+import '../../../tasks/tasks_providers.dart';
+import '../../application/recent_sessions_provider.dart';
 
 /// Tryb sortowania osi czasu sesji.
 enum SessionsTimelineSort { newestFirst, oldestFirst }
