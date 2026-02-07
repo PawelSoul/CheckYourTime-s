@@ -26,11 +26,17 @@ class TimerPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Timer'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: const TimerQuickToggle(),
+          ),
+        ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            const TimerQuickToggle(),
             const SizedBox(height: 4),
             Text(
               isIdle ? 'Naciśnij Start, żeby zacząć' : 'Sesja w toku',

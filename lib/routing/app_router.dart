@@ -6,7 +6,7 @@ import '../features/settings/presentation/settings_page.dart';
 import '../features/shell/presentation/shell_page.dart';
 import '../features/tasks/presentation/tasks_list_page.dart';
 import '../features/timer/presentation/name_task_screen.dart';
-import '../features/timer/presentation/timer_screen.dart';
+import '../features/timer/presentation/timer_page.dart';
 
 enum AppRoute {
   tasks,
@@ -32,7 +32,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/timer',
             name: AppRoute.timer.name,
-            builder: (context, state) => const TimerScreen(),
+            builder: (context, state) => const TimerPage(),
             routes: [
               GoRoute(
                 path: 'name-task',
