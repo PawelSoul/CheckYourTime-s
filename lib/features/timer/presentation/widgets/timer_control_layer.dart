@@ -35,10 +35,10 @@ class TimerControlLayer extends ConsumerStatefulWidget {
   final VoidCallback onTapScreen;
 
   @override
-  ConsumerState<TimerControlLayer> createState() => _TimerControlLayerState();
+  ConsumerState<TimerControlLayer> createState() => TimerControlLayerState();
 }
 
-class _TimerControlLayerState extends ConsumerState<TimerControlLayer> {
+class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
   bool _controlsVisible = true;
   Timer? _hideTimer;
 
