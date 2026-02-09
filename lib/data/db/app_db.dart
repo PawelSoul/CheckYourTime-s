@@ -8,25 +8,23 @@ import 'package:path_provider/path_provider.dart';
 import 'tables/categories_table.dart';
 import 'tables/sessions_table.dart';
 import 'tables/tasks_table.dart';
-import 'tables/task_notes_table.dart';
 
 import 'daos/categories_dao.dart';
 import 'daos/sessions_dao.dart';
 import 'daos/tasks_dao.dart';
-import 'daos/task_notes_dao.dart';
 
 part 'app_db.g.dart';
 
 @DriftDatabase(
-  tables: [CategoriesTable, TasksTable, SessionsTable, TaskNotesTable],
-  daos: [CategoriesDao, TasksDao, SessionsDao, TaskNotesDao],
+  tables: [CategoriesTable, TasksTable, SessionsTable],
+  daos: [CategoriesDao, TasksDao, SessionsDao],
 )
 class AppDb extends _$AppDb {
   AppDb() : super(_openConnection());
 
-  /// v1 -> v2 -> v3 -> v4 -> v5
+  /// v1 -> v2 -> v3 -> v4
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -53,11 +51,6 @@ class AppDb extends _$AppDb {
       if (from < 4) {
         await m.createTable(categoriesTable);
         await m.addColumn(tasksTable, tasksTable.categoryId);
-      }
-
-      // v5: tabela notatek do zadań (wiele notatek na task)
-      if (from < 5) {
-        await m.createTable(taskNotesTable);
       }
     },
     beforeOpen: (details) async {
