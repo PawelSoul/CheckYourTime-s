@@ -194,60 +194,104 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
     _hideTimer?.cancel();
     final messenger = ScaffoldMessenger.of(context);
     final sessionId = widget.activeSessionId;
-    final textController = TextEditingController();
+    final sessionsDao = ref.read(sessionsDaoProvider);
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Notatka'),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: 'Opcjonalna notatka do sesji…',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Anuluj'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final note = textController.text.trim();
-              if (sessionId != null && note.isNotEmpty) {
-                final sessionsDao = ref.read(sessionsDaoProvider);
-                final nowMs = DateTime.now().millisecondsSinceEpoch;
-                await sessionsDao.updateNote(
-                  sessionId,
-                  note: note,
-                  nowMs: nowMs,
-                );
-              }
-              if (!ctx.mounted) return;
-              Navigator.of(ctx).pop();
-              // Odkładamy snackbar na następną klatkę, żeby uniknąć _dependents.isEmpty:
-              // pop() usuwa trasę; showSnackBar w tej samej klatce może triggerować
-              // rebuild w momencie gdy InheritedWidget jest w trakcie dispose.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Notatka zapisana')),
-                );
-              });
-            },
-            child: const Text('Zapisz'),
-          ),
-        ],
+      builder: (ctx) => _NoteDialogContent(
+        sessionId: sessionId,
+        messenger: messenger,
+        onSave: (String note) async {
+          if (sessionId != null && note.isNotEmpty) {
+            final nowMs = DateTime.now().millisecondsSinceEpoch;
+            await sessionsDao.updateNote(
+              sessionId!,
+              note: note,
+              nowMs: nowMs,
+            );
+          }
+        },
       ),
     ).then((_) {
-      textController.dispose();
-      // setState tylko gdy widget nadal w drzewie; odkładamy na następną klatkę,
-      // żeby nie wywoływać setState w mikrotaśmie zaraz po zamknięciu dialogu.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _resetHideTimer();
       });
     });
+  }
+}
+
+/// Dialog notatki – controller i lifecycle tylko wewnątrz State, bez współdzielenia.
+class _NoteDialogContent extends StatefulWidget {
+  const _NoteDialogContent({
+    required this.sessionId,
+    required this.messenger,
+    required this.onSave,
+  });
+
+  final String? sessionId;
+  final ScaffoldMessengerState messenger;
+  final Future<void> Function(String note) onSave;
+
+  @override
+  State<_NoteDialogContent> createState() => _NoteDialogContentState();
+}
+
+class _NoteDialogContentState extends State<_NoteDialogContent> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onAnuluj() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _onZapisz() async {
+    final note = _controller.text.trim();
+    await widget.onSave(note);
+    if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.messenger.showSnackBar(
+        const SnackBar(content: Text('Notatka zapisana')),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Notatka'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLines: 4,
+        decoration: const InputDecoration(
+          hintText: 'Opcjonalna notatka do sesji…',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _onAnuluj,
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () => _onZapisz(),
+          child: const Text('Zapisz'),
+        ),
+      ],
+    );
   }
 }
 
