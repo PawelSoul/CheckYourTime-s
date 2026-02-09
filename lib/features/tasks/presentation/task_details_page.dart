@@ -602,6 +602,7 @@ class _StatsExpandedContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final taskNotes = ref.watch(taskNotesListProvider(taskId));
     final tasksDao = ref.read(tasksDaoProvider);
     final sessionsDao = ref.read(sessionsDaoProvider);
     final sessionsStream = sessionsDao.watchSessionsByTaskId(taskId);
@@ -626,7 +627,18 @@ class _StatsExpandedContent extends ConsumerWidget {
               final sessions = sessionsSnapshot.data ?? [];
               final plannedSec = t?.plannedTimeSec ?? 0;
               final actualSec = sessions.fold<int>(0, (sum, s) => sum + s.durationSec);
-              final hasData = plannedSec > 0 || actualSec > 0;
+              final sessionNoteItems = sessions
+                  .where((s) => s.note != null && s.note!.trim().isNotEmpty)
+                  .map((s) => _NoteItem(timestampMs: s.startAt, content: s.note!))
+                  .toList();
+              final taskNoteItems = taskNotes
+                  .map((n) => _NoteItem(timestampMs: n.createdAtMs, content: n.content))
+                  .toList();
+              final allNotes = List<_NoteItem>.from(sessionNoteItems)
+                ..addAll(taskNoteItems)
+                ..sort((a, b) => b.timestampMs.compareTo(a.timestampMs));
+
+              final hasData = plannedSec > 0 || actualSec > 0 || allNotes.isNotEmpty;
 
               if (!hasData) {
                 return Text(
@@ -659,6 +671,35 @@ class _StatsExpandedContent extends ConsumerWidget {
                     label: 'Łączny czas przerw',
                     value: '—',
                   ),
+                  if (allNotes.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Notatki',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.9),
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...allNotes.map((item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateTimeUtils.formatTaskDateTimeFromEpochMs(item.timestampMs),
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item.content,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        )),
+                  ],
                 ],
               );
             },
