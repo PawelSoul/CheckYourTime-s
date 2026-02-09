@@ -223,8 +223,7 @@ class _CzasSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final createdAt = DateTime.fromMillisecondsSinceEpoch(task.createdAt);
-    final plannedMinutes = task.plannedTimeSec ~/ 60;
-    final endTime = createdAt.add(Duration(minutes: plannedMinutes));
+    final endTime = createdAt.add(Duration(seconds: task.plannedTimeSec));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -248,13 +247,19 @@ class _CzasSection extends StatelessWidget {
           const SizedBox(height: 12),
           _RowLabelValue(label: 'Data', value: DateTimeUtils.formatDateFromEpochMs(task.createdAt)),
           const SizedBox(height: 8),
-          _RowLabelValue(label: 'Godzina rozpoczęcia', value: DateTimeUtils.formatTimeFromEpochMs(task.createdAt)),
+          _RowLabelValue(
+            label: 'Godzina rozpoczęcia',
+            value: DateTimeUtils.formatTimeWithSecondsFromEpochMs(task.createdAt),
+          ),
           const SizedBox(height: 8),
-          _RowLabelValue(label: 'Długość zadania', value: '$plannedMinutes min'),
+          _RowLabelValue(
+            label: 'Długość zadania',
+            value: DateTimeUtils.formatDurationSeconds(task.plannedTimeSec),
+          ),
           const SizedBox(height: 8),
           _RowLabelValue(
             label: 'Godzina zakończenia',
-            value: DateTimeUtils.formatTime(endTime),
+            value: DateTimeUtils.formatTimeWithSeconds(endTime.millisecondsSinceEpoch),
           ),
         ],
       ),
@@ -473,13 +478,15 @@ class _NotesExpandedContent extends ConsumerWidget {
 
   static void _showAddNoteDialog(BuildContext context, WidgetRef ref, String taskId) {
     final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(taskNotesProvider.notifier);
     showDialog<void>(
       context: context,
       builder: (ctx) => _AddNoteDialogContent(
         taskId: taskId,
         messenger: messenger,
         onSave: (content) {
-          ref.read(taskNotesProvider.notifier).addNote(taskId, content);
+          notifier.addNote(taskId, content);
+          ref.invalidate(taskNotesListProvider(taskId));
         },
       ),
     );
