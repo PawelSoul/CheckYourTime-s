@@ -5,6 +5,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _taskNotesPrefsKey = 'task_notes_list';
 
+/// Ładuje zapisane notatki z SharedPreferences (do użycia w main przed utworzeniem notifiera).
+Map<String, List<TaskNote>> loadTaskNotesFromPrefs(SharedPreferences prefs) {
+  try {
+    final json = prefs.getString(_taskNotesPrefsKey);
+    if (json == null || json.isEmpty) return {};
+    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    final loaded = <String, List<TaskNote>>{};
+    for (final e in decoded.entries) {
+      final list = (e.value as List<dynamic>)
+          .map((o) => TaskNote.fromJson(o as Map<String, dynamic>))
+          .toList();
+      loaded[e.key as String] = list;
+    }
+    return loaded;
+  } catch (_) {
+    return {};
+  }
+}
+
 /// Jedna notatka powiązana z zadaniem (taskId).
 class TaskNote {
   const TaskNote({
@@ -55,10 +74,24 @@ final sharedPrefsProvider = Provider<SharedPreferences>((ref) {
   );
 });
 
+/// Początkowy stan notatek (nadpisywany w main po wczytaniu z prefs – brak wyścigu z addNote).
+final initialTaskNotesMapProvider = Provider<Map<String, List<TaskNote>>>((ref) => {});
+
+/// Łączy dwie listy notatek (bez duplikatów po id), sortuje po createdAtMs.
+List<TaskNote> _mergeNoteLists(List<TaskNote> a, List<TaskNote> b) {
+  final byId = <String, TaskNote>{};
+  for (final n in a) byId[n.id] = n;
+  for (final n in b) byId[n.id] = n;
+  final merged = byId.values.toList();
+  merged.sort((x, y) => x.createdAtMs.compareTo(y.createdAtMs));
+  return merged;
+}
+
 /// Zapisuje listę notatek i ładuje ją przy starcie. Każda dodana notatka trafia do listy i jest zapisywana.
 class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
-  TaskNotesNotifier(this._prefs) : super({}) {
-    _loadFromStorage();
+  TaskNotesNotifier(this._prefs, {Map<String, List<TaskNote>>? initialData})
+      : super(initialData ?? {}) {
+    if (initialData == null) _loadFromStorage();
   }
 
   final SharedPreferences _prefs;
@@ -71,23 +104,18 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
 
   Future<void> _loadFromStorage() async {
     try {
-      final json = _prefs.getString(_taskNotesPrefsKey);
-      if (json == null || json.isEmpty) return;
-      final decoded = jsonDecode(json) as Map<String, dynamic>;
-      final loaded = <String, List<TaskNote>>{};
-      for (final e in decoded.entries) {
-        final list = (e.value as List<dynamic>)
-            .map((o) => TaskNote.fromJson(o as Map<String, dynamic>))
-            .toList();
-        loaded[e.key as String] = list;
+      final loaded = loadTaskNotesFromPrefs(_prefs);
+      if (loaded.isEmpty) return;
+      final allTaskIds = {...loaded.keys, ...state.keys};
+      final merged = <String, List<TaskNote>>{};
+      for (final taskId in allTaskIds) {
+        final fromLoaded = loaded[taskId] ?? [];
+        final fromState = state[taskId] ?? [];
+        merged[taskId] = _mergeNoteLists(fromLoaded, fromState);
       }
-      // Nadpisz tylko gdy stan nadal pusty – inaczej _loadFromStorage()
-      // mogłoby się skończyć po addNote() i zniszczyć świeżo dodane notatki.
-      if (state.isEmpty) {
-        state = loaded;
-      }
+      state = merged;
     } catch (_) {
-      // uszkodzone dane – zostaw puste
+      // uszkodzone dane – zostaw aktualny stan
     }
   }
 
@@ -131,7 +159,10 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
 
 final taskNotesProvider =
     StateNotifierProvider<TaskNotesNotifier, Map<String, List<TaskNote>>>(
-  (ref) => TaskNotesNotifier(ref.watch(sharedPrefsProvider)),
+  (ref) => TaskNotesNotifier(
+    ref.watch(sharedPrefsProvider),
+    initialData: ref.watch(initialTaskNotesMapProvider),
+  ),
 );
 
 /// Lista notatek dla danego zadania (z zapisanej listy).

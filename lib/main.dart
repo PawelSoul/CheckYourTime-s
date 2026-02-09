@@ -9,11 +9,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final prefs = await SharedPreferences.getInstance();
+  final initialNotes = loadTaskNotesFromPrefs(prefs);
 
   runApp(
     ProviderScope(
       overrides: [
         sharedPrefsProvider.overrideWithValue(prefs),
+        initialTaskNotesMapProvider.overrideWithValue(initialNotes),
       ],
       child: const App(),
     ),
