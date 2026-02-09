@@ -39,7 +39,7 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final id = '${taskId}_${nowMs}';
     final note = TaskNote(id: id, taskId: taskId, content: content.trim(), createdAtMs: nowMs);
-    final list = [...(state[taskId] ?? []), note];
+    final list = <TaskNote>[...(state[taskId] ?? []), note];
     state = {...state, taskId: list};
   }
 
@@ -47,7 +47,13 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
     final list = state[taskId];
     if (list == null) return;
     final next = list.where((n) => n.id != noteId).toList();
-    state = next.isEmpty ? Map.from(state)..remove(taskId) : {...state, taskId: next};
+    if (next.isEmpty) {
+      final m = Map<String, List<TaskNote>>.from(state);
+      m.remove(taskId);
+      state = m;
+    } else {
+      state = {...state, taskId: next};
+    }
   }
 }
 

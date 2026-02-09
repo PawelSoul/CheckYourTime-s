@@ -357,14 +357,14 @@ class _TilesSection extends ConsumerWidget {
           curve: Curves.easeOut,
           child: notesExpanded
               ? _NotesExpandedContent(taskId: taskId)
-              : const SizedBox.shrink(height: 0),
+              : const SizedBox.shrink(),
         ),
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
           child: statsExpanded
               ? _StatsExpandedContent(taskId: taskId)
-              : const SizedBox.shrink(height: 0),
+              : const SizedBox.shrink(),
         ),
       ],
     );
