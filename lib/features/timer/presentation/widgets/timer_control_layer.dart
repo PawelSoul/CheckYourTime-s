@@ -105,10 +105,13 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                 _QuickActionChip(
                   label: 'Notatka',
                   icon: Icons.note_add_outlined,
-                  onTap: () {
-                    widget.onTapScreen();
-                    _showNoteDialog(context);
-                  },
+                  onTap: widget.isIdle
+                      ? null
+                      : () {
+                          widget.onTapScreen();
+                          _showNoteDialog(context);
+                        },
+                  tooltip: widget.isIdle ? 'Uruchom stoper, aby dodać notatkę' : null,
                 ),
               ],
             ),
@@ -188,6 +191,7 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
   void _showNoteDialog(BuildContext context) {
     setState(() => _controlsVisible = true);
     _hideTimer?.cancel();
+    final messenger = ScaffoldMessenger.of(context);
     final textController = TextEditingController();
     showDialog<void>(
       context: context,
@@ -219,12 +223,11 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                   nowMs: nowMs,
                 );
               }
-              if (ctx.mounted) {
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Notatka zapisana')),
-                );
-              }
+              if (!ctx.mounted) return;
+              Navigator.of(ctx).pop();
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Notatka zapisana')),
+              );
             },
             child: const Text('Zapisz'),
           ),
@@ -349,46 +352,56 @@ class _QuickActionChip extends StatelessWidget {
   const _QuickActionChip({
     required this.label,
     required this.icon,
-    required this.onTap,
+    this.onTap,
+    this.tooltip,
   });
 
   final String label;
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final enabled = onTap != null;
+    final chip = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.10),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8)),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
-                    ),
+        child: Opacity(
+          opacity: enabled ? 1 : 0.5,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.10),
+                width: 1,
               ),
-            ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8)),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.85),
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+    if (tooltip != null) {
+      return Tooltip(message: tooltip!, child: chip);
+    }
+    return chip;
   }
 }
 
