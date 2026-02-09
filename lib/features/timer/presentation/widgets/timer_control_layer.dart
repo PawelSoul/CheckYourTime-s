@@ -160,7 +160,7 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
     _hideTimer?.cancel();
     showDialog<DateTime?>(
       context: context,
-      builder: (ctx) => const _AlarmDialog(),
+      builder: (ctx) => _AlarmDialog(),
     ).then((target) {
       if (!mounted) return;
       _resetHideTimer();
