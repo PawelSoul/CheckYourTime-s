@@ -60,8 +60,8 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
 final taskNotesProvider =
     StateNotifierProvider<TaskNotesNotifier, Map<String, List<TaskNote>>>((ref) => TaskNotesNotifier());
 
-/// Lista notatek dla danego zadania.
+/// Lista notatek dla danego zadania. Zwraca nową listę przy każdej zmianie, żeby UI się odświeżało.
 final taskNotesListProvider = Provider.family<List<TaskNote>, String>((ref, taskId) {
-  final map = ref.watch(taskNotesProvider);
-  return ref.read(taskNotesProvider.notifier).getNotes(taskId);
+  ref.watch(taskNotesProvider);
+  return List<TaskNote>.from(ref.read(taskNotesProvider.notifier).getNotes(taskId));
 });
