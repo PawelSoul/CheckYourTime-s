@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
-import 'package:checkyourtime/core/widgets/glass_card.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
-import 'widgets/task_list_item.dart';
+import '../application/task_notes_provider.dart';
+import '../tasks_providers.dart';
 
-/// Ekran szczegółów zadania – otwierany po kliknięciu karty na liście.
+/// Ekran szczegółów zadania – MVP w stylu iOS (czysty, rozwijane sekcje).
 class TaskDetailsPage extends ConsumerStatefulWidget {
   const TaskDetailsPage({
     super.key,
@@ -27,27 +27,52 @@ class TaskDetailsPage extends ConsumerStatefulWidget {
 
 class _TaskDetailsPageState extends ConsumerState<TaskDetailsPage> {
   late TaskRow _task;
+  late TextEditingController _titleController;
+  bool _notesExpanded = false;
+  bool _statsExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _task = widget.task;
+    _titleController = TextEditingController(text: widget.task.name);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveTitleIfChanged() async {
+    final name = _titleController.text.trim();
+    if (name.isEmpty || name == _task.name) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    await ref.read(tasksDaoProvider).renameTask(_task.id, name: name, nowMs: nowMs);
+    if (!mounted) return;
+    setState(() => _task = _task.copyWith(name: name, updatedAt: nowMs));
   }
 
   @override
   Widget build(BuildContext context) {
     final colorHex = widget.categoryColorHex ?? _task.colorHex;
     final baseColor = CategoryColors.parse(colorHex);
-    final accentColor = _accentColor(baseColor);
+    final category = _task.categoryId != null
+        ? ref.watch(categoryByIdProvider(_task.categoryId!))
+        : null;
+    final categoryName = category?.name ?? 'Brak kategorii';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Szczegóły zadania'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edytuj nazwę',
-            onPressed: () => _handleEdit(context),
+          TextButton(
+            onPressed: () async {
+              await _saveTitleIfChanged();
+              if (!mounted) return;
+              Navigator.of(context).pop();
+            },
+            child: const Text('Gotowe'),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -56,46 +81,31 @@ class _TaskDetailsPageState extends ConsumerState<TaskDetailsPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _HeaderSection(
-            taskName: _task.name,
-            createdAtMs: _task.createdAt,
-            accentColor: accentColor,
-          ),
-          const SizedBox(height: 20),
-          _StatisticsSection(taskId: _task.id),
-          const SizedBox(height: 20),
-          _ActionsSection(
-            onEdit: () => _handleEdit(context),
-            onDelete: () => _handleDelete(context),
-          ),
-        ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _MainInfoSection(
+              titleController: _titleController,
+              categoryName: categoryName,
+              categoryColorHex: colorHex,
+              isArchived: _task.isArchived,
+              onTitleSubmitted: _saveTitleIfChanged,
+            ),
+            const SizedBox(height: 24),
+            _CzasSection(task: _task),
+            const SizedBox(height: 24),
+            _TilesSection(
+              taskId: _task.id,
+              notesExpanded: _notesExpanded,
+              statsExpanded: _statsExpanded,
+              onToggleNotes: () => setState(() => _notesExpanded = !_notesExpanded),
+              onToggleStats: () => setState(() => _statsExpanded = !_statsExpanded),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Future<void> _handleEdit(BuildContext context) async {
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (ctx) => EditTaskDialogContent(task: _task),
-    );
-    if (newName == null || newName.trim().isEmpty || !mounted) return;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    await ref.read(tasksDaoProvider).renameTask(
-          _task.id,
-          name: newName.trim(),
-          nowMs: nowMs,
-        );
-
-    if (!mounted) return;
-    setState(() {
-      _task = _task.copyWith(name: newName.trim(), updatedAt: nowMs);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Nazwa zadania zapisana')),
     );
   }
 
@@ -137,77 +147,135 @@ class _TaskDetailsPageState extends ConsumerState<TaskDetailsPage> {
     );
     Navigator.of(context).pop();
   }
-
-  static Color _accentColor(Color base) {
-    final hsl = HSLColor.fromColor(base);
-    return hsl.withSaturation((hsl.saturation * 0.6).clamp(0.0, 1.0)).toColor();
-  }
 }
 
-class _HeaderSection extends StatelessWidget {
-  const _HeaderSection({
-    required this.taskName,
-    required this.createdAtMs,
-    required this.accentColor,
+class _MainInfoSection extends StatelessWidget {
+  const _MainInfoSection({
+    required this.titleController,
+    required this.categoryName,
+    required this.categoryColorHex,
+    required this.isArchived,
+    required this.onTitleSubmitted,
   });
 
-  final String taskName;
-  final int createdAtMs;
-  final Color accentColor;
+  final TextEditingController titleController;
+  final String categoryName;
+  final String? categoryColorHex;
+  final bool isArchived;
+  final VoidCallback onTitleSubmitted;
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    final color = CategoryColors.parse(categoryColorHex);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: titleController,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ) ??
+              const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
+            hintText: 'Nazwa zadania',
+          ),
+          onSubmitted: (_) => onTitleSubmitted(),
+          onEditingComplete: onTitleSubmitted,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: color.withOpacity(0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    categoryName,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                isArchived ? 'zrobione' : 'w trakcie',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CzasSection extends StatelessWidget {
+  const _CzasSection({required this.task});
+
+  final TaskRow task;
+
+  @override
+  Widget build(BuildContext context) {
+    final createdAt = DateTime.fromMillisecondsSinceEpoch(task.createdAt);
+    final plannedMinutes = task.plannedTimeSec ~/ 60;
+    final endTime = createdAt.add(Duration(minutes: plannedMinutes));
+
+    return Container(
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.08),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                margin: const EdgeInsets.only(right: 10, top: 4),
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  shape: BoxShape.circle,
+          Text(
+            'Czas',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  taskName,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ) ??
-                      const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(left: 22),
-            child: Text(
-              DateTimeUtils.formatTaskDateTimeFromEpochMs(createdAtMs),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.7),
-                  ),
-            ),
           ),
           const SizedBox(height: 12),
-          Container(
-            height: 4,
-            decoration: BoxDecoration(
-              color: accentColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
+          _RowLabelValue(label: 'Data', value: DateTimeUtils.formatDateFromEpochMs(task.createdAt)),
+          const SizedBox(height: 8),
+          _RowLabelValue(label: 'Godzina rozpoczęcia', value: DateTimeUtils.formatTimeFromEpochMs(task.createdAt)),
+          const SizedBox(height: 8),
+          _RowLabelValue(label: 'Długość zadania', value: '$plannedMinutes min'),
+          const SizedBox(height: 8),
+          _RowLabelValue(
+            label: 'Godzina zakończenia',
+            value: DateTimeUtils.formatTime(endTime),
           ),
         ],
       ),
@@ -215,45 +283,333 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
-class _StatisticsSection extends ConsumerWidget {
-  const _StatisticsSection({required this.taskId});
+class _RowLabelValue extends StatelessWidget {
+  const _RowLabelValue({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.9),
+              ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TilesSection extends ConsumerWidget {
+  const _TilesSection({
+    required this.taskId,
+    required this.notesExpanded,
+    required this.statsExpanded,
+    required this.onToggleNotes,
+    required this.onToggleStats,
+  });
+
+  final String taskId;
+  final bool notesExpanded;
+  final bool statsExpanded;
+  final VoidCallback onToggleNotes;
+  final VoidCallback onToggleStats;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _TileCard(
+                icon: Icons.note_outlined,
+                label: 'Notatki',
+                onTap: onToggleNotes,
+                isExpanded: notesExpanded,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _TileCard(
+                icon: Icons.bar_chart_outlined,
+                label: 'Statystyki',
+                onTap: onToggleStats,
+                isExpanded: statsExpanded,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          child: notesExpanded
+              ? _NotesExpandedContent(taskId: taskId)
+              : const SizedBox.shrink(height: 0),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          child: statsExpanded
+              ? _StatsExpandedContent(taskId: taskId)
+              : const SizedBox.shrink(height: 0),
+        ),
+      ],
+    );
+  }
+}
+
+class _TileCard extends StatelessWidget {
+  const _TileCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.isExpanded,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ),
+              Icon(
+                isExpanded ? Icons.expand_less : Icons.expand_more,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotesExpandedContent extends ConsumerWidget {
+  const _NotesExpandedContent({required this.taskId});
 
   final String taskId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessionsStream = ref.watch(sessionsDaoProvider).watchSessionsByTaskId(taskId);
+    final notes = ref.watch(taskNotesListProvider(taskId));
 
-    return GlassCard(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Statystyki',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+          ...notes.map((n) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateTimeUtils.formatTaskDateTimeFromEpochMs(n.createdAtMs),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      n.content,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
+              )),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _showAddNoteDialog(context, ref, taskId),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Dodaj notatkę'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
           ),
-          const SizedBox(height: 12),
-          StreamBuilder(
+        ],
+      ),
+    );
+  }
+
+  static void _showAddNoteDialog(BuildContext context, WidgetRef ref, String taskId) {
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => _AddNoteDialogContent(
+        taskId: taskId,
+        messenger: messenger,
+        onSave: (content) {
+          ref.read(taskNotesProvider.notifier).addNote(taskId, content);
+        },
+      ),
+    );
+  }
+}
+
+/// Dialog dodawania notatki – controller tylko w State, bezpieczny lifecycle.
+class _AddNoteDialogContent extends StatefulWidget {
+  const _AddNoteDialogContent({
+    required this.taskId,
+    required this.messenger,
+    required this.onSave,
+  });
+
+  final String taskId;
+  final ScaffoldMessengerState messenger;
+  final void Function(String content) onSave;
+
+  @override
+  State<_AddNoteDialogContent> createState() => _AddNoteDialogContentState();
+}
+
+class _AddNoteDialogContentState extends State<_AddNoteDialogContent> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onAnuluj() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop();
+  }
+
+  void _onZapisz() {
+    final content = _controller.text.trim();
+    if (content.isEmpty) return;
+    widget.onSave(content);
+    if (!mounted) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.messenger.showSnackBar(
+        const SnackBar(content: Text('Notatka dodana')),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Nowa notatka'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLines: 4,
+        decoration: const InputDecoration(
+          hintText: 'Treść notatki…',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _onAnuluj,
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: _onZapisz,
+          child: const Text('Zapisz'),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatsExpandedContent extends ConsumerWidget {
+  const _StatsExpandedContent({required this.taskId});
+
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksDao = ref.read(tasksDaoProvider);
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    final sessionsStream = sessionsDao.watchSessionsByTaskId(taskId);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
+        ),
+      ),
+      child: FutureBuilder<TaskRow?>(
+        future: tasksDao.getById(taskId),
+        builder: (context, taskSnapshot) {
+          return StreamBuilder<List<SessionRow>>(
             stream: sessionsStream,
-            builder: (ctx, snapshot) {
-              if (!snapshot.hasData) {
-                return const SizedBox.shrink();
-              }
+            builder: (context, sessionsSnapshot) {
+              final t = taskSnapshot.data;
+              final sessions = sessionsSnapshot.data ?? [];
+              final plannedSec = t?.plannedTimeSec ?? 0;
+              final actualSec = sessions.fold<int>(0, (sum, s) => sum + s.durationSec);
+              final hasData = plannedSec > 0 || actualSec > 0;
 
-              final sessions = snapshot.data!;
-              final sessionsWithNotes = sessions.where((s) => s.note != null && s.note!.trim().isNotEmpty).toList();
-
-              if (sessionsWithNotes.isEmpty) {
+              if (!hasData) {
                 return Text(
-                  'Brak notatek',
+                  'Brak danych jeszcze',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
                       ),
                 );
               }
@@ -261,102 +617,30 @@ class _StatisticsSection extends ConsumerWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Notatki (${sessionsWithNotes.length})',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.8),
-                        ),
+                  _RowLabelValue(
+                    label: 'Planowany czas',
+                    value: '${plannedSec ~/ 60} min',
                   ),
                   const SizedBox(height: 8),
-                  ...sessionsWithNotes.map((session) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateTimeUtils.formatTaskDateTimeFromEpochMs(session.startAt),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withOpacity(0.6),
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            session.note!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withOpacity(0.9),
-                                ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+                  _RowLabelValue(
+                    label: 'Rzeczywisty czas',
+                    value: '${actualSec ~/ 60} min',
+                  ),
+                  const SizedBox(height: 8),
+                  _RowLabelValue(
+                    label: 'Liczba przerw',
+                    value: '—',
+                  ),
+                  const SizedBox(height: 8),
+                  _RowLabelValue(
+                    label: 'Łączny czas przerw',
+                    value: '—',
+                  ),
                 ],
               );
             },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionsSection extends StatelessWidget {
-  const _ActionsSection({
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Akcje',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 20),
-                  label: const Text('Edytuj'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onDelete,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  label: const Text('Usuń'),
-                ),
-              ),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

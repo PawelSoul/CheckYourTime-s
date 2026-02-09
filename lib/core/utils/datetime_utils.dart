@@ -16,4 +16,18 @@ class DateTimeUtils {
   static String formatTaskDateTimeFromEpochMs(int epochMs) {
     return _taskDateTimeFormat.format(DateTime.fromMillisecondsSinceEpoch(epochMs));
   }
+
+  static final DateFormat _dateOnly = DateFormat('dd.MM.yyyy');
+  static final DateFormat _timeOnly = DateFormat('HH:mm');
+
+  static String formatDateFromEpochMs(int epochMs) {
+    return _dateOnly.format(DateTime.fromMillisecondsSinceEpoch(epochMs));
+  }
+
+  static String formatTimeFromEpochMs(int epochMs) {
+    return _timeOnly.format(DateTime.fromMillisecondsSinceEpoch(epochMs));
+  }
+
+  static String formatDate(DateTime d) => _dateOnly.format(d);
+  static String formatTime(DateTime d) => _timeOnly.format(d);
 }
