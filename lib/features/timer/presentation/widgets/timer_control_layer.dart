@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/providers/app_db_provider.dart';
 import 'package:checkyourtime/data/db/daos/sessions_dao.dart';
+import '../../application/alarm_provider.dart';
 import '../../application/timer_controller.dart';
 
 /// Warstwa kontrolek: jeden główny przycisk + szybkie akcje. Auto-hide po 5s.
@@ -157,11 +158,30 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
   void _showAlarmDialog(BuildContext context) {
     setState(() => _controlsVisible = true);
     _hideTimer?.cancel();
-    showDialog<void>(
+    showDialog<DateTime?>(
       context: context,
-      builder: (ctx) => _AlarmDialog(),
-    ).then((_) {
-      if (mounted) _resetHideTimer();
+      builder: (ctx) => const _AlarmDialog(),
+    ).then((target) {
+      if (!mounted) return;
+      _resetHideTimer();
+      if (target == null) return;
+      ref.read(alarmTargetProvider.notifier).state = target;
+      final delay = target.difference(DateTime.now());
+      if (delay.isNegative || delay == Duration.zero) {
+        ref.read(alarmTargetProvider.notifier).state = null;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🔔 Alarm!'), duration: Duration(seconds: 3)),
+        );
+        return;
+      }
+      Timer(delay, () {
+        ref.read(alarmTargetProvider.notifier).state = null;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('🔔 Alarm!'), duration: Duration(seconds: 3)),
+          );
+        }
+      });
     });
   }
 
@@ -288,6 +308,7 @@ class _AlarmDialogState extends State<_AlarmDialog> {
         ),
         FilledButton(
           onPressed: () {
+            DateTime? target;
             if (_useExactTime && _selectedTime != null) {
               final now = DateTime.now();
               var alarmTime = DateTime(
@@ -300,35 +321,16 @@ class _AlarmDialogState extends State<_AlarmDialog> {
               if (alarmTime.isBefore(now)) {
                 alarmTime = alarmTime.add(const Duration(days: 1));
               }
-              final delay = alarmTime.difference(now);
-              Timer(delay, () {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🔔 Alarm!'),
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                }
-              });
-              Navigator.of(context).pop();
+              target = alarmTime;
+              Navigator.of(context).pop(target);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Alarm ustawiony na ${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'),
                 ),
               );
             } else if (!_useExactTime && _selectedMinutes != null) {
-              Timer(Duration(minutes: _selectedMinutes!), () {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🔔 Alarm!'),
-                      duration: Duration(seconds: 3),
-                    ),
-                  );
-                }
-              });
-              Navigator.of(context).pop();
+              target = DateTime.now().add(Duration(minutes: _selectedMinutes!));
+              Navigator.of(context).pop(target);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Alarm ustawiony za $_selectedMinutes min'),

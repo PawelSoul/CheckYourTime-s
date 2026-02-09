@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/timer_controller.dart';
 import '../application/timer_view_settings.dart';
 import '../../tasks/tasks_providers.dart';
+import 'widgets/alarm_countdown_banner.dart';
 import 'widgets/analog_stopwatch_view.dart';
 import 'widgets/category_chip.dart';
 import 'widgets/segmented_hour_progress_bar.dart';
@@ -54,6 +55,7 @@ class _TimerPageState extends ConsumerState<TimerPage> {
           behavior: HitTestBehavior.opaque,
           child: Column(
             children: [
+              const AlarmCountdownBanner(),
               const SizedBox(height: 16),
               viewSettings.viewMode == TimerViewMode.analog
                   ? AnalogStopwatchView(elapsed: state.elapsed)
