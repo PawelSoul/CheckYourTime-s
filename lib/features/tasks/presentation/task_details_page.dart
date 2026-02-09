@@ -423,6 +423,7 @@ class _NotesExpandedContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final taskNotes = ref.watch(taskNotesListProvider(taskId));
     final sessionsDao = ref.read(sessionsDaoProvider);
     final sessionsStream = sessionsDao.watchSessionsByTaskId(taskId);
 
@@ -444,7 +445,6 @@ class _NotesExpandedContent extends ConsumerWidget {
               .where((s) => s.note != null && s.note!.trim().isNotEmpty)
               .map((s) => _NoteItem(timestampMs: s.startAt, content: s.note!))
               .toList();
-          final taskNotes = ref.watch(taskNotesListProvider(taskId));
           final taskNoteItems = taskNotes
               .map((n) => _NoteItem(timestampMs: n.createdAtMs, content: n.content))
               .toList();
