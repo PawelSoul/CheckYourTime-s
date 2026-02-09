@@ -259,7 +259,7 @@ class _CzasSection extends StatelessWidget {
           const SizedBox(height: 8),
           _RowLabelValue(
             label: 'Godzina zakończenia',
-            value: DateTimeUtils.formatTimeWithSeconds(endTime.millisecondsSinceEpoch),
+            value: DateTimeUtils.formatTimeWithSeconds(endTime),
           ),
         ],
       ),
