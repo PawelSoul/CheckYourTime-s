@@ -409,6 +409,13 @@ class _TileCard extends StatelessWidget {
   }
 }
 
+/// Jedna pozycja na liście notatek: z sesji (DB) lub z notatek do zadania (in-memory).
+class _NoteItem {
+  const _NoteItem({required this.timestampMs, required this.content});
+  final int timestampMs;
+  final String content;
+}
+
 class _NotesExpandedContent extends ConsumerWidget {
   const _NotesExpandedContent({required this.taskId});
 
@@ -416,8 +423,9 @@ class _NotesExpandedContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Subskrypcja tego samego providera, do którego zapisuje dialog – jedna instancja (StateNotifierProvider).
-    final notes = ref.watch(taskNotesListProvider(taskId));
+    final taskNotes = ref.watch(taskNotesListProvider(taskId));
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    final sessionsStream = sessionsDao.watchSessionsByTaskId(taskId);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -429,49 +437,65 @@ class _NotesExpandedContent extends ConsumerWidget {
           color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (notes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                'Brak notatek. Dodaj pierwszą.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                    ),
-              ),
-            )
-          else
-            ...notes.map((n) => Padding(
+      child: StreamBuilder<List<SessionRow>>(
+        stream: sessionsStream,
+        builder: (context, sessionSnapshot) {
+          final sessions = sessionSnapshot.data ?? [];
+          final sessionNotes = sessions
+              .where((s) => s.note != null && s.note!.trim().isNotEmpty)
+              .map((s) => _NoteItem(timestampMs: s.startAt, content: s.note!))
+              .toList();
+          final taskNoteItems = taskNotes
+              .map((n) => _NoteItem(timestampMs: n.createdAtMs, content: n.content))
+              .toList();
+          final allNotes = [...sessionNotes, ...taskNoteItems]
+            ..sort((a, b) => b.timestampMs.compareTo(a.timestampMs));
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (allNotes.isEmpty)
+                Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        DateTimeUtils.formatTaskDateTimeFromEpochMs(n.createdAtMs),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        n.content,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
+                  child: Text(
+                    'Brak notatek. Dodaj pierwszą.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        ),
                   ),
-                )),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => _showAddNoteDialog(context, ref, taskId),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Dodaj notatkę'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-          ),
-        ],
+                )
+              else
+                ...allNotes.map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateTimeUtils.formatTaskDateTimeFromEpochMs(item.timestampMs),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.content,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    )),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => _showAddNoteDialog(context, ref, taskId),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Dodaj notatkę'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
