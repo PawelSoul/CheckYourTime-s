@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
+import 'package:checkyourtime/features/tasks/application/task_notes_provider.dart';
 import 'package:checkyourtime/providers/app_db_provider.dart';
 import 'package:checkyourtime/data/db/daos/sessions_dao.dart';
 import '../../application/alarm_provider.dart';
@@ -24,6 +25,7 @@ class TimerControlLayer extends ConsumerStatefulWidget {
   required this.onStop,
   required this.onTapScreen,
   required this.activeSessionId,
+  required this.activeTaskId,
   });
 
   final bool isIdle;
@@ -37,6 +39,7 @@ class TimerControlLayer extends ConsumerStatefulWidget {
   final VoidCallback onStop;
   final VoidCallback onTapScreen;
   final String? activeSessionId;
+  final String? activeTaskId;
 
   @override
   ConsumerState<TimerControlLayer> createState() => TimerControlLayerState();
@@ -193,21 +196,14 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
     setState(() => _controlsVisible = true);
     _hideTimer?.cancel();
     final messenger = ScaffoldMessenger.of(context);
-    final sessionId = widget.activeSessionId;
-    final sessionsDao = ref.read(sessionsDaoProvider);
+    final taskId = widget.activeTaskId;
     showDialog<void>(
       context: context,
       builder: (ctx) => _NoteDialogContent(
-        sessionId: sessionId,
         messenger: messenger,
-        onSave: (String note) async {
-          if (sessionId != null && note.isNotEmpty) {
-            final nowMs = DateTime.now().millisecondsSinceEpoch;
-            await sessionsDao.updateNote(
-              sessionId!,
-              note: note,
-              nowMs: nowMs,
-            );
+        onSave: (String note) {
+          if (taskId != null && note.trim().isNotEmpty) {
+            ref.read(taskNotesProvider.notifier).addNote(taskId, note.trim());
           }
         },
       ),
@@ -222,14 +218,12 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
 /// Dialog notatki – controller i lifecycle tylko wewnątrz State, bez współdzielenia.
 class _NoteDialogContent extends StatefulWidget {
   const _NoteDialogContent({
-    required this.sessionId,
     required this.messenger,
     required this.onSave,
   });
 
-  final String? sessionId;
   final ScaffoldMessengerState messenger;
-  final Future<void> Function(String note) onSave;
+  final void Function(String note) onSave;
 
   @override
   State<_NoteDialogContent> createState() => _NoteDialogContentState();
@@ -255,9 +249,9 @@ class _NoteDialogContentState extends State<_NoteDialogContent> {
     Navigator.of(context).pop();
   }
 
-  Future<void> _onZapisz() async {
+  void _onZapisz() {
     final note = _controller.text.trim();
-    await widget.onSave(note);
+    widget.onSave(note);
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
     Navigator.of(context).pop();

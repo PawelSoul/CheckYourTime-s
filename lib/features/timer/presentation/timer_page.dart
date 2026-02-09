@@ -83,6 +83,7 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                   onStop: () => _onStop(context, controller),
                   onTapScreen: () => _controlLayerKey.currentState?.showControls(),
                   activeSessionId: state.activeSessionId,
+                  activeTaskId: state.activeTaskId,
                 ),
               ),
               const SizedBox(height: 24),
