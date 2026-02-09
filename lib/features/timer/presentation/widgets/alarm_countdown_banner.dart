@@ -41,8 +41,18 @@ class _AlarmCountdownContent extends StatefulWidget {
 
 class _AlarmCountdownContentState extends State<_AlarmCountdownContent> {
   Timer? _timer;
+  Timer? _hideXTimer;
   Duration _remaining = Duration.zero;
   bool _isTapped = false;
+
+  static const _hideXAfter = Duration(seconds: 5);
+
+  void _scheduleHideX() {
+    _hideXTimer?.cancel();
+    _hideXTimer = Timer(_hideXAfter, () {
+      if (mounted) setState(() => _isTapped = false);
+    });
+  }
 
   @override
   void initState() {
@@ -66,6 +76,7 @@ class _AlarmCountdownContentState extends State<_AlarmCountdownContent> {
   @override
   void dispose() {
     _timer?.cancel();
+    _hideXTimer?.cancel();
     super.dispose();
   }
 
@@ -86,7 +97,13 @@ class _AlarmCountdownContentState extends State<_AlarmCountdownContent> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        setState(() => _isTapped = true);
+        if (_isTapped) {
+          _hideXTimer?.cancel();
+          setState(() => _isTapped = false);
+        } else {
+          setState(() => _isTapped = true);
+          _scheduleHideX();
+        }
       },
       child: GlassCard(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
