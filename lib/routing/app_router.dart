@@ -17,7 +17,7 @@ enum AppRoute {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/tasks',
+    initialLocation: '/timer',
     routes: [
       ShellRoute(
         builder: (context, state, child) {
