@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
-import '../../../providers/app_db_provider.dart';
-import '../../../data/db/daos/sessions_dao.dart';
+import 'package:checkyourtime/providers/app_db_provider.dart';
+import 'package:checkyourtime/data/db/daos/sessions_dao.dart';
 import '../../application/timer_controller.dart';
 
 /// Warstwa kontrolek: jeden główny przycisk + szybkie akcje. Auto-hide po 5s.
