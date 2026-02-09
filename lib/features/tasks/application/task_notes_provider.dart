@@ -81,7 +81,11 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
             .toList();
         loaded[e.key as String] = list;
       }
-      state = loaded;
+      // Nadpisz tylko gdy stan nadal pusty – inaczej _loadFromStorage()
+      // mogłoby się skończyć po addNote() i zniszczyć świeżo dodane notatki.
+      if (state.isEmpty) {
+        state = loaded;
+      }
     } catch (_) {
       // uszkodzone dane – zostaw puste
     }
