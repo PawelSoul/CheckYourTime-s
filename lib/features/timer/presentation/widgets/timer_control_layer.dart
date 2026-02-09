@@ -189,9 +189,11 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
   }
 
   void _showNoteDialog(BuildContext context) {
+    if (!mounted) return;
     setState(() => _controlsVisible = true);
     _hideTimer?.cancel();
     final messenger = ScaffoldMessenger.of(context);
+    final sessionId = widget.activeSessionId;
     final textController = TextEditingController();
     showDialog<void>(
       context: context,
@@ -214,20 +216,25 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
           FilledButton(
             onPressed: () async {
               final note = textController.text.trim();
-              if (widget.activeSessionId != null && note.isNotEmpty) {
+              if (sessionId != null && note.isNotEmpty) {
                 final sessionsDao = ref.read(sessionsDaoProvider);
                 final nowMs = DateTime.now().millisecondsSinceEpoch;
                 await sessionsDao.updateNote(
-                  widget.activeSessionId!,
+                  sessionId,
                   note: note,
                   nowMs: nowMs,
                 );
               }
               if (!ctx.mounted) return;
               Navigator.of(ctx).pop();
-              messenger.showSnackBar(
-                const SnackBar(content: Text('Notatka zapisana')),
-              );
+              // Odkładamy snackbar na następną klatkę, żeby uniknąć _dependents.isEmpty:
+              // pop() usuwa trasę; showSnackBar w tej samej klatce może triggerować
+              // rebuild w momencie gdy InheritedWidget jest w trakcie dispose.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Notatka zapisana')),
+                );
+              });
             },
             child: const Text('Zapisz'),
           ),
@@ -235,7 +242,11 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
       ),
     ).then((_) {
       textController.dispose();
-      if (mounted) _resetHideTimer();
+      // setState tylko gdy widget nadal w drzewie; odkładamy na następną klatkę,
+      // żeby nie wywoływać setState w mikrotaśmie zaraz po zamknięciu dialogu.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _resetHideTimer();
+      });
     });
   }
 }
