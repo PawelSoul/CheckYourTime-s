@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
+import '../../../providers/app_db_provider.dart';
+import '../../../data/db/daos/sessions_dao.dart';
 import '../../application/timer_controller.dart';
-import 'start_task_sheet.dart';
 
 /// Warstwa kontrolek: jeden główny przycisk + szybkie akcje. Auto-hide po 5s.
 class TimerControlLayer extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class TimerControlLayer extends ConsumerStatefulWidget {
     required this.onResume,
   required this.onStop,
   required this.onTapScreen,
+  required this.activeSessionId,
   });
 
   final bool isIdle;
@@ -33,6 +35,7 @@ class TimerControlLayer extends ConsumerStatefulWidget {
   final VoidCallback onResume;
   final VoidCallback onStop;
   final VoidCallback onTapScreen;
+  final String? activeSessionId;
 
   @override
   ConsumerState<TimerControlLayer> createState() => TimerControlLayerState();
@@ -90,11 +93,11 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _QuickActionChip(
-                  label: 'Zmień kategorię',
-                  icon: Icons.category_outlined,
+                  label: 'Alarm',
+                  icon: Icons.alarm_outlined,
                   onTap: () {
                     widget.onTapScreen();
-                    _showCategorySheet(context);
+                    _showAlarmDialog(context);
                   },
                 ),
                 const SizedBox(width: 12),
@@ -103,97 +106,77 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                   icon: Icons.note_add_outlined,
                   onTap: () {
                     widget.onTapScreen();
-                    _showNoteSheet(context);
+                    _showNoteDialog(context);
                   },
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                _MainActionButton(
-                  isIdle: widget.isIdle,
-                  isRunning: widget.isRunning,
-                  isPaused: widget.isPaused,
-                  accentColor: accentColor,
-                  onStart: () {
-                    widget.onTapScreen();
-                    widget.onStart();
-                  },
-                  onPause: () {
-                    widget.onTapScreen();
-                    widget.onPause();
-                  },
-                  onResume: () {
-                    widget.onTapScreen();
-                    widget.onResume();
-                  },
-                  onStop: () {
-                    widget.onTapScreen();
-                    widget.onStop();
-                  },
-                ),
-                if (!widget.isIdle)
-                  Positioned(
-                    right: -8,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            widget.onTapScreen();
-                            widget.onStop();
-                          },
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.12),
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.close,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+            if (widget.isIdle)
+              _MainActionButton(
+                label: 'Start',
+                accentColor: accentColor,
+                onTap: () {
+                  widget.onTapScreen();
+                  widget.onStart();
+                },
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _MainActionButton(
+                    label: widget.isRunning ? 'Pauza' : 'Wznów',
+                    accentColor: accentColor,
+                    onTap: () {
+                      widget.onTapScreen();
+                      if (widget.isRunning) {
+                        widget.onPause();
+                      } else {
+                        widget.onResume();
+                      }
+                    },
                   ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  _MainActionButton(
+                    label: 'Stop',
+                    accentColor: Theme.of(context).colorScheme.error,
+                    onTap: () {
+                      widget.onTapScreen();
+                      widget.onStop();
+                    },
+                  ),
+                ],
+              ),
           ],
         ),
       ),
     );
   }
 
-  void _showCategorySheet(BuildContext context) {
+  void _showAlarmDialog(BuildContext context) {
     setState(() => _controlsVisible = true);
     _hideTimer?.cancel();
-    showStartTaskSheet(context, ref, onTaskSelected: () {}).then((_) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => _AlarmDialog(),
+    ).then((_) {
       if (mounted) _resetHideTimer();
     });
   }
 
-  void _showNoteSheet(BuildContext context) {
+  void _showNoteDialog(BuildContext context) {
     setState(() => _controlsVisible = true);
     _hideTimer?.cancel();
+    final textController = TextEditingController();
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Notatka'),
         content: TextField(
+          controller: textController,
           autofocus: true,
-          maxLines: 3,
+          maxLines: 4,
           decoration: const InputDecoration(
             hintText: 'Opcjonalna notatka do sesji…',
             border: OutlineInputBorder(),
@@ -202,13 +185,161 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Zamknij'),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final note = textController.text.trim();
+              if (widget.activeSessionId != null && note.isNotEmpty) {
+                final sessionsDao = ref.read(sessionsDaoProvider);
+                final nowMs = DateTime.now().millisecondsSinceEpoch;
+                await sessionsDao.updateNote(
+                  widget.activeSessionId!,
+                  note: note,
+                  nowMs: nowMs,
+                );
+              }
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Notatka zapisana')),
+                );
+              }
+            },
+            child: const Text('Zapisz'),
           ),
         ],
       ),
     ).then((_) {
+      textController.dispose();
       if (mounted) _resetHideTimer();
     });
+  }
+}
+
+class _AlarmDialog extends StatefulWidget {
+  @override
+  State<_AlarmDialog> createState() => _AlarmDialogState();
+}
+
+class _AlarmDialogState extends State<_AlarmDialog> {
+  bool _useExactTime = false;
+  TimeOfDay? _selectedTime;
+  int? _selectedMinutes;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Alarm'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment<bool>(
+                value: false,
+                label: Text('Za ile'),
+              ),
+              ButtonSegment<bool>(
+                value: true,
+                label: Text('Dokładna godzina'),
+              ),
+            ],
+            selected: {_useExactTime},
+            onSelectionChanged: (s) {
+              setState(() => _useExactTime = s.first);
+            },
+          ),
+          const SizedBox(height: 16),
+          if (_useExactTime)
+            ListTile(
+              title: Text(_selectedTime == null
+                  ? 'Wybierz godzinę'
+                  : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'),
+              trailing: const Icon(Icons.access_time),
+              onTap: () async {
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: _selectedTime ?? TimeOfDay.now(),
+                );
+                if (time != null) setState(() => _selectedTime = time);
+              },
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final mins in [5, 10, 15, 30, 60, 120])
+                  ChoiceChip(
+                    label: Text(mins < 60 ? '$mins min' : '${mins ~/ 60}h'),
+                    selected: _selectedMinutes == mins,
+                    onSelected: (s) => setState(() => _selectedMinutes = s ? mins : null),
+                  ),
+              ],
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (_useExactTime && _selectedTime != null) {
+              final now = DateTime.now();
+              var alarmTime = DateTime(
+                now.year,
+                now.month,
+                now.day,
+                _selectedTime!.hour,
+                _selectedTime!.minute,
+              );
+              if (alarmTime.isBefore(now)) {
+                alarmTime = alarmTime.add(const Duration(days: 1));
+              }
+              final delay = alarmTime.difference(now);
+              Timer(delay, () {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🔔 Alarm!'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              });
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Alarm ustawiony na ${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'),
+                ),
+              );
+            } else if (!_useExactTime && _selectedMinutes != null) {
+              Timer(Duration(minutes: _selectedMinutes!), () {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🔔 Alarm!'),
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              });
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Alarm ustawiony za $_selectedMinutes min'),
+                ),
+              );
+            }
+          },
+          child: const Text('Ustaw'),
+        ),
+      ],
+    );
   }
 }
 
@@ -261,66 +392,46 @@ class _QuickActionChip extends StatelessWidget {
 
 class _MainActionButton extends StatelessWidget {
   const _MainActionButton({
-    required this.isIdle,
-    required this.isRunning,
-    required this.isPaused,
+    required this.label,
     required this.accentColor,
-    required this.onStart,
-    required this.onPause,
-    required this.onResume,
-    required this.onStop,
+    required this.onTap,
   });
 
-  final bool isIdle;
-  final bool isRunning;
-  final bool isPaused;
+  final String label;
   final Color accentColor;
-  final VoidCallback onStart;
-  final VoidCallback onPause;
-  final VoidCallback onResume;
-  final VoidCallback onStop;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    String label;
-    VoidCallback onTap;
-    if (isIdle) {
-      label = 'Start';
-      onTap = onStart;
-    } else if (isRunning) {
-      label = 'Pauza';
-      onTap = onPause;
-    } else {
-      label = 'Wznów';
-      onTap = onResume;
-    }
-
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: isIdle ? null : onStop,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: accentColor.withOpacity(0.18),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withOpacity(0.08),
-              blurRadius: 12,
-              spreadRadius: 0,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: accentColor.withOpacity(0.18),
+              width: 1,
             ),
-          ],
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withOpacity(0.08),
+                blurRadius: 12,
+                spreadRadius: 0,
               ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
         ),
       ),
     );

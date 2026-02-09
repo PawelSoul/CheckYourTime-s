@@ -5,6 +5,7 @@ import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
 import 'package:checkyourtime/core/widgets/glass_card.dart';
 import '../../../data/db/daos/tasks_dao.dart';
+import '../../../data/db/daos/sessions_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
 import 'widgets/task_list_item.dart';
@@ -64,7 +65,7 @@ class _TaskDetailsPageState extends ConsumerState<TaskDetailsPage> {
             accentColor: accentColor,
           ),
           const SizedBox(height: 20),
-          const _StatisticsSection(),
+          _StatisticsSection(taskId: _task.id),
           const SizedBox(height: 20),
           _ActionsSection(
             onEdit: () => _handleEdit(context),
@@ -214,11 +215,15 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
-class _StatisticsSection extends StatelessWidget {
-  const _StatisticsSection();
+class _StatisticsSection extends ConsumerWidget {
+  const _StatisticsSection({required this.taskId});
+
+  final String taskId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionsStream = ref.watch(sessionsDaoProvider).watchSessionsByTaskId(taskId);
+
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -230,15 +235,75 @@ class _StatisticsSection extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Wkrótce: czas trwania, historia sesji, streak, wykresy',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.7),
-                ),
+          const SizedBox(height: 12),
+          StreamBuilder(
+            stream: sessionsStream,
+            builder: (ctx, snapshot) {
+              if (!snapshot.hasData) {
+                return const SizedBox.shrink();
+              }
+
+              final sessions = snapshot.data!;
+              final sessionsWithNotes = sessions.where((s) => s.note != null && s.note!.trim().isNotEmpty).toList();
+
+              if (sessionsWithNotes.isEmpty) {
+                return Text(
+                  'Brak notatek',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
+                      ),
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Notatki (${sessionsWithNotes.length})',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.8),
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...sessionsWithNotes.map((session) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateTimeUtils.formatTaskDateTimeFromEpochMs(session.startAt),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.6),
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            session.note!,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.9),
+                                ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              );
+            },
           ),
         ],
       ),

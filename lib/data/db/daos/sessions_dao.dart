@@ -114,6 +114,14 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
     )).toList());
   }
 
+  /// Sesje dla konkretnego zadania (zakończone, z notatkami).
+  Stream<List<SessionRow>> watchSessionsByTaskId(String taskId) {
+    final q = select(sessionsTable)
+      ..where((s) => s.taskId.equals(taskId) & s.endAt.isNotNull())
+      ..orderBy([(s) => OrderingTerm(expression: s.startAt, mode: OrderingMode.desc)]);
+    return q.watch();
+  }
+
   // --- UPDATE ---
   Future<void> updateNote(String sessionId, {String? note, required int nowMs}) async {
     await (update(sessionsTable)..where((s) => s.id.equals(sessionId))).write(
