@@ -42,6 +42,7 @@ class _AlarmCountdownContent extends StatefulWidget {
 class _AlarmCountdownContentState extends State<_AlarmCountdownContent> {
   Timer? _timer;
   Duration _remaining = Duration.zero;
+  bool _isTapped = false;
 
   @override
   void initState() {
@@ -83,43 +84,45 @@ class _AlarmCountdownContentState extends State<_AlarmCountdownContent> {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      borderRadius: 14,
-      child: Row(
-        children: [
-          Icon(
-            Icons.alarm,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.9),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
+    return GestureDetector(
+      onTap: () {
+        setState(() => _isTapped = true);
+      },
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        borderRadius: 14,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
               _remaining.isNegative || _remaining == Duration.zero
-                  ? 'Alarm za 0:00'
-                  : 'Alarm za ${_formatDuration(_remaining)}',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  ? '0:00'
+                  : _formatDuration(_remaining),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
                   ),
             ),
-          ),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onCancel,
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  Icons.close,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            if (_isTapped) ...[
+              const SizedBox(width: 8),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onCancel,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
