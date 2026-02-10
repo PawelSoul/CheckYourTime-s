@@ -46,39 +46,18 @@ class SettingsPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     _divider(context),
-                    SettingsOptionTile<bool>(
+                    _SettingsSwitchTile(
                       title: 'Pasek postępu godziny',
                       subtitle: 'Widoczny na górze ekranu timera',
-                      value: true,
-                      groupValue: settings.progressBarVisible,
-                      onTap: () => notifier.setProgressBarVisible(true),
-                      trailingType: TrailingType.radio,
+                      value: settings.progressBarVisible,
+                      onChanged: (v) => notifier.setProgressBarVisible(v),
                     ),
                     _divider(context),
-                    SettingsOptionTile<bool>(
-                      title: 'Pasek postępu ukryty',
-                      value: false,
-                      groupValue: settings.progressBarVisible,
-                      onTap: () => notifier.setProgressBarVisible(false),
-                      trailingType: TrailingType.radio,
-                    ),
-                    const SizedBox(height: 12),
-                    _divider(context),
-                    SettingsOptionTile<bool>(
+                    _SettingsSwitchTile(
                       title: 'Poświata nad kontrolkami',
                       subtitle: 'Delikatna poświata pod przyciskiem Start',
-                      value: true,
-                      groupValue: settings.glowVisible,
-                      onTap: () => notifier.setGlowVisible(true),
-                      trailingType: TrailingType.radio,
-                    ),
-                    _divider(context),
-                    SettingsOptionTile<bool>(
-                      title: 'Poświata ukryta',
-                      value: false,
-                      groupValue: settings.glowVisible,
-                      onTap: () => notifier.setGlowVisible(false),
-                      trailingType: TrailingType.radio,
+                      value: settings.glowVisible,
+                      onChanged: (v) => notifier.setGlowVisible(v),
                     ),
                     if (settings.viewMode == TimerViewMode.analog) ...[
                       const SizedBox(height: 12),
@@ -247,6 +226,72 @@ class SettingsPage extends ConsumerWidget {
     ref.invalidate(tasksStreamProvider);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Wszystkie dane zostały usunięte')),
+    );
+  }
+}
+
+class _SettingsSwitchTile extends StatelessWidget {
+  const _SettingsSwitchTile({
+    required this.title,
+    this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(10),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _optionRowHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: value,
+                  onChanged: onChanged,
+                  activeColor: theme.colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

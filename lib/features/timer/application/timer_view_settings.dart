@@ -31,8 +31,8 @@ class TimerViewSettings {
     this.analogHandsMode = AnalogHandsMode.three,
     this.analogNumbersStyle = AnalogNumbersStyle.large,
     this.analogNumbersVisible = true,
-    this.progressBarVisible = true,
-    this.glowVisible = true,
+    this.progressBarVisible = false,
+    this.glowVisible = false,
   });
 
   final TimerViewMode viewMode;
@@ -79,8 +79,8 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     final analogNumbersStyle =
         numbersStr == 'subtle' ? AnalogNumbersStyle.subtle : AnalogNumbersStyle.large;
     final numbersVisible = _prefs!.getBool(_keyAnalogNumbersVisible) ?? true;
-    final progressBarVisible = _prefs!.getBool(_keyProgressBarVisible) ?? true;
-    final glowVisible = _prefs!.getBool(_keyGlowVisible) ?? true;
+    final progressBarVisible = _prefs!.getBool(_keyProgressBarVisible) ?? false;
+    final glowVisible = _prefs!.getBool(_keyGlowVisible) ?? false;
     state = TimerViewSettings(
       viewMode: viewMode,
       analogHandsMode: analogHandsMode,
