@@ -11,6 +11,7 @@ import 'widgets/segmented_hour_progress_bar.dart';
 import 'widgets/start_task_sheet.dart';
 import 'widgets/timer_control_layer.dart';
 import 'widgets/timer_clock.dart';
+import 'widgets/timer_glow.dart';
 
 class TimerPage extends ConsumerStatefulWidget {
   const TimerPage({super.key});
@@ -60,30 +61,50 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                 ),
               ],
               const Spacer(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: TimerControlLayer(
-                  key: _controlLayerKey,
-                  isIdle: isIdle,
-                  isRunning: isRunning,
-                  isPaused: isPaused,
-                  categoryColorHex: categoryColorHex,
-                  categoryName: categoryName,
-                  onStart: () => showStartTaskSheet(context, ref),
-                  onPause: () => controller.pause(),
-                  onResume: () => controller.resume(),
-                  onStop: () => _onStop(context, controller),
-                  onTapScreen: () => _controlLayerKey.currentState?.showControls(),
-                  activeSessionId: state.activeSessionId,
-                  activeTaskId: state.activeTaskId,
-                ),
+              Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 180,
+                    child: TimerGlow(
+                      isIdle: isIdle,
+                      categoryColorHex: categoryColorHex,
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: TimerControlLayer(
+                          key: _controlLayerKey,
+                          isIdle: isIdle,
+                          isRunning: isRunning,
+                          isPaused: isPaused,
+                          categoryColorHex: categoryColorHex,
+                          categoryName: categoryName,
+                          onStart: () => showStartTaskSheet(context, ref),
+                          onPause: () => controller.pause(),
+                          onResume: () => controller.resume(),
+                          onStop: () => _onStop(context, controller),
+                          onTapScreen: () => _controlLayerKey.currentState?.showControls(),
+                          activeSessionId: state.activeSessionId,
+                          activeTaskId: state.activeTaskId,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SegmentedHourProgressBar(
+                        elapsed: state.elapsed,
+                        categoryColorHex: categoryColorHex,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              SegmentedHourProgressBar(
-                elapsed: state.elapsed,
-                categoryColorHex: categoryColorHex,
-              ),
-              const SizedBox(height: 32),
             ],
           ),
         ),
