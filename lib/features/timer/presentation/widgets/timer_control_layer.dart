@@ -134,7 +134,9 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                 children: [
                   _MainActionButton(
                     label: widget.isRunning ? 'Pauza' : 'Wznów',
-                    accentColor: accentColor,
+                    accentColor: widget.isRunning
+                        ? Theme.of(context).colorScheme.error
+                        : Colors.green,
                     onTap: () {
                       widget.onTapScreen();
                       if (widget.isRunning) {
