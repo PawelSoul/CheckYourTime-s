@@ -49,6 +49,13 @@ class _TimerPageState extends ConsumerState<TimerPage> {
           child: Column(
             children: [
               const AlarmCountdownBanner(),
+              if (viewSettings.progressBarVisible) ...[
+                const SizedBox(height: 12),
+                SegmentedHourProgressBar(
+                  elapsed: state.elapsed,
+                  categoryColorHex: categoryColorHex,
+                ),
+              ],
               const SizedBox(height: 16),
               viewSettings.viewMode == TimerViewMode.analog
                   ? AnalogStopwatchView(elapsed: state.elapsed)
@@ -64,16 +71,17 @@ class _TimerPageState extends ConsumerState<TimerPage> {
               Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 180,
-                    child: TimerGlow(
-                      isIdle: isIdle,
-                      categoryColorHex: categoryColorHex,
+                  if (viewSettings.glowVisible)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 180,
+                      child: TimerGlow(
+                        isIdle: isIdle,
+                        categoryColorHex: categoryColorHex,
+                      ),
                     ),
-                  ),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -94,11 +102,6 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                           activeSessionId: state.activeSessionId,
                           activeTaskId: state.activeTaskId,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      SegmentedHourProgressBar(
-                        elapsed: state.elapsed,
-                        categoryColorHex: categoryColorHex,
                       ),
                       const SizedBox(height: 32),
                     ],

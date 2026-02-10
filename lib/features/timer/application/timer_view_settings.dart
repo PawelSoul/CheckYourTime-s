@@ -5,6 +5,8 @@ const _keyTimerViewMode = 'timer_view_mode';
 const _keyAnalogHandsMode = 'analog_hands_mode';
 const _keyAnalogNumbersStyle = 'analog_numbers_style';
 const _keyAnalogNumbersVisible = 'analog_numbers_visible';
+const _keyProgressBarVisible = 'timer_progress_bar_visible';
+const _keyGlowVisible = 'timer_glow_visible';
 
 enum TimerViewMode { digital, analog }
 
@@ -29,24 +31,32 @@ class TimerViewSettings {
     this.analogHandsMode = AnalogHandsMode.three,
     this.analogNumbersStyle = AnalogNumbersStyle.large,
     this.analogNumbersVisible = true,
+    this.progressBarVisible = true,
+    this.glowVisible = true,
   });
 
   final TimerViewMode viewMode;
   final AnalogHandsMode analogHandsMode;
   final AnalogNumbersStyle analogNumbersStyle;
   final bool analogNumbersVisible;
+  final bool progressBarVisible;
+  final bool glowVisible;
 
   TimerViewSettings copyWith({
     TimerViewMode? viewMode,
     AnalogHandsMode? analogHandsMode,
     AnalogNumbersStyle? analogNumbersStyle,
     bool? analogNumbersVisible,
+    bool? progressBarVisible,
+    bool? glowVisible,
   }) {
     return TimerViewSettings(
       viewMode: viewMode ?? this.viewMode,
       analogHandsMode: analogHandsMode ?? this.analogHandsMode,
       analogNumbersStyle: analogNumbersStyle ?? this.analogNumbersStyle,
       analogNumbersVisible: analogNumbersVisible ?? this.analogNumbersVisible,
+      progressBarVisible: progressBarVisible ?? this.progressBarVisible,
+      glowVisible: glowVisible ?? this.glowVisible,
     );
   }
 }
@@ -69,11 +79,15 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     final analogNumbersStyle =
         numbersStr == 'subtle' ? AnalogNumbersStyle.subtle : AnalogNumbersStyle.large;
     final numbersVisible = _prefs!.getBool(_keyAnalogNumbersVisible) ?? true;
+    final progressBarVisible = _prefs!.getBool(_keyProgressBarVisible) ?? true;
+    final glowVisible = _prefs!.getBool(_keyGlowVisible) ?? true;
     state = TimerViewSettings(
       viewMode: viewMode,
       analogHandsMode: analogHandsMode,
       analogNumbersStyle: analogNumbersStyle,
       analogNumbersVisible: numbersVisible,
+      progressBarVisible: progressBarVisible,
+      glowVisible: glowVisible,
     );
   }
 
@@ -102,5 +116,17 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setBool(_keyAnalogNumbersVisible, visible);
     state = state.copyWith(analogNumbersVisible: visible);
+  }
+
+  Future<void> setProgressBarVisible(bool visible) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_keyProgressBarVisible, visible);
+    state = state.copyWith(progressBarVisible: visible);
+  }
+
+  Future<void> setGlowVisible(bool visible) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_keyGlowVisible, visible);
+    state = state.copyWith(glowVisible: visible);
   }
 }
