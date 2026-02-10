@@ -11,7 +11,6 @@ import 'widgets/segmented_hour_progress_bar.dart';
 import 'widgets/start_task_sheet.dart';
 import 'widgets/timer_control_layer.dart';
 import 'widgets/timer_clock.dart';
-import 'widgets/timer_quick_toggle.dart';
 
 class TimerPage extends ConsumerStatefulWidget {
   const TimerPage({super.key});
@@ -41,13 +40,6 @@ class _TimerPageState extends ConsumerState<TimerPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Timer'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(52),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: const TimerQuickToggle(),
-          ),
-        ),
       ),
       body: SafeArea(
         child: GestureDetector(
