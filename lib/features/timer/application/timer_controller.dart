@@ -98,7 +98,7 @@ class TimerController extends Notifier<TimerState> {
     });
   }
 
-  /// Start odliczania dla danej kategorii (po id). Tworzy task z nazwą "NazwaKategorii YYYY-MM-DD".
+  /// Start odliczania dla danej kategorii (po id). Tworzy task z nazwą = nazwa kategorii (bez daty).
   Future<void> startWithCategory(String categoryId) async {
     if (state.isRunning) return;
 
@@ -107,8 +107,7 @@ class TimerController extends Notifier<TimerState> {
 
     final now = DateTime.now();
     final nowMs = now.millisecondsSinceEpoch;
-    final dateStr = _formatDate(now);
-    final taskName = '${category.name} $dateStr';
+    final taskName = category.name;
     final taskId = _newId();
     final sessionId = _newId();
 
@@ -146,13 +145,6 @@ class TimerController extends Notifier<TimerState> {
       activeCategoryId: categoryId,
       startedAt: now,
     );
-  }
-
-  static String _formatDate(DateTime d) {
-    final y = d.year;
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
   }
 
   /// Tworzy nową kategorię w tabeli categories. Przypisuje unikalny kolor z puli.
