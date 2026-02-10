@@ -624,7 +624,7 @@ class _TasksDateFilterBar extends ConsumerWidget {
         );
         if (picked != null && context.mounted) {
           ref.read(tasksDateFilterProvider.notifier).state =
-              TasksDateFilterState.month(picked.year, picked.month);
+              TasksDateFilterState.forMonth(picked.year, picked.month);
         }
         break;
       case TasksDateFilterKind.year:
@@ -634,7 +634,7 @@ class _TasksDateFilterBar extends ConsumerWidget {
           builder: (ctx) => _YearPickerDialog(initialYear: now.year),
         );
         if (picked != null && context.mounted) {
-          ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.year(picked);
+          ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.forYear(picked);
         }
         break;
     }
