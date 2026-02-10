@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
-import '../../../data/db/daos/tasks_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
@@ -604,7 +603,6 @@ class _StatsExpandedContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(taskNotesProvider);
-    final tasksDao = ref.read(tasksDaoProvider);
     final sessionsDao = ref.read(sessionsDaoProvider);
     final sessionsStream = sessionsDao.watchSessionsByTaskId(taskId);
 
@@ -618,93 +616,33 @@ class _StatsExpandedContent extends ConsumerWidget {
           color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
         ),
       ),
-      child: FutureBuilder<TaskRow?>(
-        future: tasksDao.getById(taskId),
-        builder: (context, taskSnapshot) {
-          return StreamBuilder<List<SessionRow>>(
-            stream: sessionsStream,
-            builder: (context, sessionsSnapshot) {
-              final t = taskSnapshot.data;
-              final sessions = sessionsSnapshot.data ?? [];
-              final plannedSec = t?.plannedTimeSec ?? 0;
-              final actualSec = sessions.fold<int>(0, (sum, s) => sum + s.durationSec);
-              final sessionNoteItems = sessions
-                  .where((s) => s.note != null && s.note!.trim().isNotEmpty)
-                  .map((s) => _NoteItem(timestampMs: s.startAt, content: s.note!))
-                  .toList();
-              final taskNotes = ref.read(taskNotesProvider.notifier).getNotes(taskId);
-              final taskNoteItems = taskNotes
-                  .map((n) => _NoteItem(timestampMs: n.createdAtMs, content: n.content))
-                  .toList();
-              final allNotes = List<_NoteItem>.from(sessionNoteItems)
-                ..addAll(taskNoteItems)
-                ..sort((a, b) => b.timestampMs.compareTo(a.timestampMs));
+      child: StreamBuilder<List<SessionRow>>(
+        stream: sessionsStream,
+        builder: (context, sessionsSnapshot) {
+          final sessions = sessionsSnapshot.data ?? [];
 
-              final hasData = plannedSec > 0 || actualSec > 0 || allNotes.isNotEmpty;
+          final sessionNotesCount = sessions
+              .where((s) => s.note != null && s.note!.trim().isNotEmpty)
+              .length;
+          final taskNotesCount =
+              ref.read(taskNotesProvider.notifier).getNotes(taskId).length;
+          final allNotesCount = sessionNotesCount + taskNotesCount;
 
-              if (!hasData) {
-                return Text(
-                  'Brak danych jeszcze',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
-                      ),
-                );
-              }
+          if (allNotesCount == 0) {
+            return Text(
+              'Brak notatek jeszcze',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withOpacity(0.8),
+                  ),
+            );
+          }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _RowLabelValue(
-                    label: 'Planowany czas',
-                    value: '${plannedSec ~/ 60} min',
-                  ),
-                  const SizedBox(height: 8),
-                  _RowLabelValue(
-                    label: 'Rzeczywisty czas',
-                    value: '${actualSec ~/ 60} min',
-                  ),
-                  const SizedBox(height: 8),
-                  _RowLabelValue(
-                    label: 'Liczba przerw',
-                    value: '—',
-                  ),
-                  const SizedBox(height: 8),
-                  _RowLabelValue(
-                    label: 'Łączny czas przerw',
-                    value: '—',
-                  ),
-                  if (allNotes.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Notatki',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.9),
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...allNotes.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                DateTimeUtils.formatTaskDateTimeFromEpochMs(item.timestampMs),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
-                                    ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                item.content,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        )),
-                  ],
-                ],
-              );
-            },
+          return _RowLabelValue(
+            label: 'Liczba notatek',
+            value: '$allNotesCount',
           );
         },
       ),
