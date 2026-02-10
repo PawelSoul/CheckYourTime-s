@@ -13,7 +13,7 @@ class AnalogStopwatchView extends ConsumerWidget {
 
   final Duration elapsed;
 
-  static const double _size = 260;
+  static const double _size = 300;
 
   static String _format(Duration d) {
     final h = d.inHours;
@@ -43,6 +43,7 @@ class AnalogStopwatchView extends ConsumerWidget {
                 elapsed: elapsed,
                 handsMode: settings.analogHandsMode,
                 numbersStyle: settings.analogNumbersStyle,
+                numbersVisible: settings.analogNumbersVisible,
                 textColor: textColor,
               ),
             ),

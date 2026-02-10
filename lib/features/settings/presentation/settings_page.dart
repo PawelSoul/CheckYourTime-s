@@ -97,34 +97,63 @@ class SettingsPage extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                     child: Text(
-                      'Styl cyfer',
+                      'Liczby na tarczy',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                     ),
                   ),
                   ListTile(
-                    title: const Text('Duże i czytelne'),
-                    leading: Radio<AnalogNumbersStyle>(
-                      value: AnalogNumbersStyle.large,
-                      groupValue: settings.analogNumbersStyle,
-                      onChanged: (v) {
-                        if (v != null) notifier.setAnalogNumbersStyle(v);
-                      },
+                    title: const Text('Widoczne'),
+                    leading: Radio<bool>(
+                      value: true,
+                      groupValue: settings.analogNumbersVisible,
+                      onChanged: (_) => notifier.setAnalogNumbersVisible(true),
                     ),
-                    onTap: () => notifier.setAnalogNumbersStyle(AnalogNumbersStyle.large),
+                    onTap: () => notifier.setAnalogNumbersVisible(true),
                   ),
                   ListTile(
-                    title: const Text('Subtelne'),
-                    leading: Radio<AnalogNumbersStyle>(
-                      value: AnalogNumbersStyle.subtle,
-                      groupValue: settings.analogNumbersStyle,
-                      onChanged: (v) {
-                        if (v != null) notifier.setAnalogNumbersStyle(v);
-                      },
+                    title: const Text('Ukryte'),
+                    leading: Radio<bool>(
+                      value: false,
+                      groupValue: settings.analogNumbersVisible,
+                      onChanged: (_) => notifier.setAnalogNumbersVisible(false),
                     ),
-                    onTap: () => notifier.setAnalogNumbersStyle(AnalogNumbersStyle.subtle),
+                    onTap: () => notifier.setAnalogNumbersVisible(false),
                   ),
+                  if (settings.analogNumbersVisible) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                      child: Text(
+                        'Styl cyfer',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                    ListTile(
+                      title: const Text('Duże i czytelne'),
+                      leading: Radio<AnalogNumbersStyle>(
+                        value: AnalogNumbersStyle.large,
+                        groupValue: settings.analogNumbersStyle,
+                        onChanged: (v) {
+                          if (v != null) notifier.setAnalogNumbersStyle(v);
+                        },
+                      ),
+                      onTap: () => notifier.setAnalogNumbersStyle(AnalogNumbersStyle.large),
+                    ),
+                    ListTile(
+                      title: const Text('Subtelne'),
+                      leading: Radio<AnalogNumbersStyle>(
+                        value: AnalogNumbersStyle.subtle,
+                        groupValue: settings.analogNumbersStyle,
+                        onChanged: (v) {
+                          if (v != null) notifier.setAnalogNumbersStyle(v);
+                        },
+                      ),
+                      onTap: () => notifier.setAnalogNumbersStyle(AnalogNumbersStyle.subtle),
+                    ),
+                  ],
                 ],
               );
             },

@@ -9,12 +9,14 @@ class AnalogStopwatchPainter extends CustomPainter {
     required this.elapsed,
     required this.handsMode,
     required this.numbersStyle,
+    required this.numbersVisible,
     required this.textColor,
   });
 
   final Duration elapsed;
   final AnalogHandsMode handsMode;
   final AnalogNumbersStyle numbersStyle;
+  final bool numbersVisible;
   final Color textColor;
 
   static const double _twoPi = 2 * math.pi;
@@ -26,7 +28,7 @@ class AnalogStopwatchPainter extends CustomPainter {
 
     _drawBackgroundRing(canvas, center, radius);
     _drawMinuteTicks(canvas, center, radius);
-    _drawNumbers(canvas, center, radius);
+    if (numbersVisible) _drawNumbers(canvas, center, radius);
     _drawHub(canvas, center);
     _drawHands(canvas, center, radius);
   }
@@ -157,8 +159,10 @@ class AnalogStopwatchPainter extends CustomPainter {
     return (tick / 60) * _twoPi - math.pi / 2;
   }
 
+  /// 12 u góry, 3 po prawej, 6 na dole, 9 po lewej (jak na prawdziwym zegarze).
   double _hourToRadians(int hour) {
-    return (hour / 12) * _twoPi - math.pi / 2;
+    final h = hour == 12 ? 0 : hour;
+    return (h / 12) * _twoPi;
   }
 
   @override
@@ -166,6 +170,7 @@ class AnalogStopwatchPainter extends CustomPainter {
     return oldDelegate.elapsed != elapsed ||
         oldDelegate.handsMode != handsMode ||
         oldDelegate.numbersStyle != numbersStyle ||
+        oldDelegate.numbersVisible != numbersVisible ||
         oldDelegate.textColor != textColor;
   }
 }
