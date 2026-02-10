@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
+import '../../../data/db/daos/tasks_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
