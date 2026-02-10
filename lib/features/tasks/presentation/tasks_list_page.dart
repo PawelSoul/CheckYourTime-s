@@ -638,6 +638,3 @@ class _EditCategoryDialogContentState extends State<_EditCategoryDialogContent> 
     );
   }
 }
-
-/// Wybrana kategoria (do pokazania tasków po prawej).
-final selectedCategoryProvider = StateProvider<String?>((ref) => null);

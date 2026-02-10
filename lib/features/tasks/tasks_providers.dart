@@ -40,3 +40,6 @@ final tasksByCategoryProvider =
   final dao = ref.watch(tasksDaoProvider);
   return dao.watchByCategoryId(categoryId);
 });
+
+/// Wybrana kategoria (do pokazania tasków po prawej).
+final selectedCategoryProvider = StateProvider<String?>((ref) => null);
