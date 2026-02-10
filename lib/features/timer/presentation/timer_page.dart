@@ -76,7 +76,7 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      height: 180,
+                      height: 220,
                       child: TimerGlow(
                         isIdle: isIdle,
                         categoryColorHex: categoryColorHex,
@@ -86,7 +86,7 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 56),
                         child: TimerControlLayer(
                           key: _controlLayerKey,
                           isIdle: isIdle,
@@ -103,7 +103,6 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                           activeTaskId: state.activeTaskId,
                         ),
                       ),
-                      const SizedBox(height: 32),
                     ],
                   ),
                 ],

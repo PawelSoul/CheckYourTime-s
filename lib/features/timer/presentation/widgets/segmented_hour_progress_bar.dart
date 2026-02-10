@@ -22,6 +22,9 @@ class SegmentedHourProgressBar extends StatelessWidget {
     final color = CategoryColors.parse(categoryColorHex);
     final progressInHour = (elapsed.inSeconds % 3600) / 3600.0;
 
+    final theme = Theme.of(context);
+    final borderColor = theme.colorScheme.onSurface.withOpacity(0.12);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,46 +33,57 @@ class SegmentedHourProgressBar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
           child: Text(
             'Postęp godziny',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final totalGaps = _gap * (_segmentCount - 1);
-              final segmentWidth =
-                  (constraints.maxWidth - totalGaps) / _segmentCount;
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: borderColor,
+                width: 1,
+              ),
+              color: theme.colorScheme.surface.withOpacity(0.4),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final totalGaps = _gap * (_segmentCount - 1);
+                final segmentWidth =
+                    (constraints.maxWidth - totalGaps) / _segmentCount;
 
-              return Row(
-                children: List.generate(_segmentCount, (index) {
-                  final segmentStart = index / _segmentCount;
-                  final segmentEnd = (index + 1) / _segmentCount;
-                  double fill;
-                  if (progressInHour <= segmentStart) {
-                    fill = 0;
-                  } else if (progressInHour >= segmentEnd) {
-                    fill = 1;
-                  } else {
-                    fill = (progressInHour - segmentStart) / (1 / _segmentCount);
-                  }
+                return Row(
+                  children: List.generate(_segmentCount, (index) {
+                    final segmentStart = index / _segmentCount;
+                    final segmentEnd = (index + 1) / _segmentCount;
+                    double fill;
+                    if (progressInHour <= segmentStart) {
+                      fill = 0;
+                    } else if (progressInHour >= segmentEnd) {
+                      fill = 1;
+                    } else {
+                      fill = (progressInHour - segmentStart) / (1 / _segmentCount);
+                    }
 
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (index > 0) SizedBox(width: _gap),
-                      _Segment(
-                        width: segmentWidth,
-                        fill: fill,
-                        fillColor: color.withOpacity(0.85),
-                      ),
-                    ],
-                  );
-                }),
-              );
-            },
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (index > 0) SizedBox(width: _gap),
+                        _Segment(
+                          width: segmentWidth,
+                          fill: fill,
+                          fillColor: color.withOpacity(0.85),
+                        ),
+                      ],
+                    );
+                  }),
+                );
+              },
+            ),
           ),
         ),
       ],
