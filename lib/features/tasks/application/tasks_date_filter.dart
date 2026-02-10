@@ -28,11 +28,11 @@ class TasksDateFilterState {
 
   static TasksDateFilterState get last30 => const TasksDateFilterState(kind: TasksDateFilterKind.last30);
 
-  static TasksDateFilterState month(int year, int month) =>
-      TasksDateFilterState(kind: TasksDateFilterKind.month, year: year, month: month);
+  static TasksDateFilterState month(int y, int m) =>
+      TasksDateFilterState(kind: TasksDateFilterKind.month, year: y, month: m);
 
-  static TasksDateFilterState year(int year) =>
-      TasksDateFilterState(kind: TasksDateFilterKind.year, year: year);
+  static TasksDateFilterState year(int y) =>
+      TasksDateFilterState(kind: TasksDateFilterKind.year, year: y);
 
   /// Czy [createdAtMs] (Unix epoch ms) mieści się w zakresie tego filtra.
   bool contains(int createdAtMs) {
