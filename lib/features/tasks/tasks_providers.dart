@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
+import 'application/tasks_date_filter.dart';
 import 'data/tasks_repository.dart';
 import 'data/tasks_repository_impl.dart';
 
@@ -43,3 +44,7 @@ final tasksByCategoryProvider =
 
 /// Wybrana kategoria (do pokazania tasków po prawej).
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+
+/// Filtr czasowy listy zadań (wszystkie, dzisiaj, ostatnie 7/30 dni, miesiąc, rok).
+final tasksDateFilterProvider =
+    StateProvider<TasksDateFilterState>((ref) => TasksDateFilterState.all);

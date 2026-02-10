@@ -6,6 +6,7 @@ import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
+import '../application/tasks_date_filter.dart';
 import '../tasks_providers.dart';
 import 'widgets/category_glass_tile.dart';
 import 'widgets/task_glass_card.dart';
@@ -105,7 +106,13 @@ class TasksListPage extends ConsumerWidget {
                       ],
                     ),
                   )
-                : _TasksOfCategory(categoryId: selectedCategory),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _TasksDateFilterBar(),
+                      Expanded(child: _TasksOfCategory(categoryId: selectedCategory)),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -483,6 +490,273 @@ class TasksListPage extends ConsumerWidget {
   }
 }
 
+/// Pasek filtra czasowego nad listą zadań.
+class _TasksDateFilterBar extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filter = ref.watch(tasksDateFilterProvider);
+    final label = _filterLabel(filter);
+
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Text(
+              'Okres:',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: PopupMenuButton<TasksDateFilterKind>(
+                padding: EdgeInsets.zero,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down, size: 20),
+                    ],
+                  ),
+                ),
+                onSelected: (kind) => _onFilterSelected(context, ref, kind),
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: TasksDateFilterKind.all,
+                    child: Text('Wszystkie'),
+                  ),
+                  const PopupMenuItem(
+                    value: TasksDateFilterKind.today,
+                    child: Text('Dzisiaj'),
+                  ),
+                  const PopupMenuItem(
+                    value: TasksDateFilterKind.last7,
+                    child: Text('Ostatnie 7 dni'),
+                  ),
+                  const PopupMenuItem(
+                    value: TasksDateFilterKind.last30,
+                    child: Text('Ostatnie 30 dni'),
+                  ),
+                  const PopupMenuItem(
+                    value: TasksDateFilterKind.month,
+                    child: Text('Miesiąc...'),
+                  ),
+                  const PopupMenuItem(
+                    value: TasksDateFilterKind.year,
+                    child: Text('Rok...'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _filterLabel(TasksDateFilterState filter) {
+    switch (filter.kind) {
+      case TasksDateFilterKind.all:
+        return 'Wszystkie';
+      case TasksDateFilterKind.today:
+        return 'Dzisiaj';
+      case TasksDateFilterKind.last7:
+        return 'Ostatnie 7 dni';
+      case TasksDateFilterKind.last30:
+        return 'Ostatnie 30 dni';
+      case TasksDateFilterKind.month:
+        if (filter.year != null && filter.month != null) {
+          return '${_monthName(filter.month!)} ${filter.year}';
+        }
+        return 'Wybierz miesiąc...';
+      case TasksDateFilterKind.year:
+        if (filter.year != null) return '${filter.year}';
+        return 'Wybierz rok...';
+    }
+  }
+
+  static const _monthNames = [
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
+  ];
+  static String _monthName(int month) =>
+      month >= 1 && month <= 12 ? _monthNames[month - 1] : '?';
+
+  Future<void> _onFilterSelected(
+    BuildContext context,
+    WidgetRef ref,
+    TasksDateFilterKind kind,
+  ) async {
+    switch (kind) {
+      case TasksDateFilterKind.all:
+        ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.all;
+        break;
+      case TasksDateFilterKind.today:
+        ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.today;
+        break;
+      case TasksDateFilterKind.last7:
+        ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.last7;
+        break;
+      case TasksDateFilterKind.last30:
+        ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.last30;
+        break;
+      case TasksDateFilterKind.month:
+        final now = DateTime.now();
+        final picked = await showDialog<({int year, int month})>(
+          context: context,
+          builder: (ctx) => _MonthYearPickerDialog(
+            initialYear: now.year,
+            initialMonth: now.month,
+          ),
+        );
+        if (picked != null && context.mounted) {
+          ref.read(tasksDateFilterProvider.notifier).state =
+              TasksDateFilterState.month(picked.year, picked.month);
+        }
+        break;
+      case TasksDateFilterKind.year:
+        final now = DateTime.now();
+        final picked = await showDialog<int>(
+          context: context,
+          builder: (ctx) => _YearPickerDialog(initialYear: now.year),
+        );
+        if (picked != null && context.mounted) {
+          ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.year(picked);
+        }
+        break;
+    }
+  }
+}
+
+/// Dialog wyboru miesiąca i roku.
+class _MonthYearPickerDialog extends StatefulWidget {
+  const _MonthYearPickerDialog({
+    required this.initialYear,
+    required this.initialMonth,
+  });
+
+  final int initialYear;
+  final int initialMonth;
+
+  @override
+  State<_MonthYearPickerDialog> createState() => _MonthYearPickerDialogState();
+}
+
+class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
+  late int _year;
+  late int _month;
+
+  static const _monthNames = [
+    'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+    'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _year = widget.initialYear;
+    _month = widget.initialMonth;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final years = List.generate(11, (i) => DateTime.now().year - 5 + i);
+    return AlertDialog(
+      title: const Text('Wybierz miesiąc'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonFormField<int>(
+            value: _year,
+            decoration: const InputDecoration(labelText: 'Rok'),
+            items: years.map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+            onChanged: (v) => setState(() => _year = v ?? _year),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int>(
+            value: _month,
+            decoration: const InputDecoration(labelText: 'Miesiąc'),
+            items: List.generate(12, (i) => i + 1)
+                .map((m) => DropdownMenuItem(
+                      value: m,
+                      child: Text(_monthNames[m - 1]),
+                    ))
+                .toList(),
+            onChanged: (v) => setState(() => _month = v ?? _month),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop((year: _year, month: _month)),
+          child: const Text('OK'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dialog wyboru roku.
+class _YearPickerDialog extends StatefulWidget {
+  const _YearPickerDialog({required this.initialYear});
+
+  final int initialYear;
+
+  @override
+  State<_YearPickerDialog> createState() => _YearPickerDialogState();
+}
+
+class _YearPickerDialogState extends State<_YearPickerDialog> {
+  late int _year;
+
+  @override
+  void initState() {
+    super.initState();
+    _year = widget.initialYear;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final years = List.generate(11, (i) => DateTime.now().year - 5 + i);
+    return AlertDialog(
+      title: const Text('Wybierz rok'),
+      content: DropdownButtonFormField<int>(
+        value: _year,
+        decoration: const InputDecoration(labelText: 'Rok'),
+        items: years.map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+        onChanged: (v) => setState(() => _year = v ?? _year),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_year),
+          child: const Text('OK'),
+        ),
+      ],
+    );
+  }
+}
+
 class _TasksOfCategory extends ConsumerWidget {
   const _TasksOfCategory({required this.categoryId});
 
@@ -491,10 +765,12 @@ class _TasksOfCategory extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasksAsync = ref.watch(tasksByCategoryProvider(categoryId));
+    final filter = ref.watch(tasksDateFilterProvider);
 
     return tasksAsync.when(
       data: (tasks) {
-        if (tasks.isEmpty) {
+        final filtered = tasks.where((t) => filter.contains(t.createdAt)).toList();
+        if (filtered.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -502,7 +778,9 @@ class _TasksOfCategory extends ConsumerWidget {
                 Icon(Icons.task_alt, size: 48, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: 12),
                 Text(
-                  'Brak zadań w tej kategorii.\nUruchom stoper i zatrzymaj go,\nżeby dodać pierwszy.',
+                  tasks.isEmpty
+                      ? 'Brak zadań w tej kategorii.\nUruchom stoper i zatrzymaj go,\nżeby dodać pierwszy.'
+                      : 'Brak zadań w wybranym okresie.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
@@ -515,9 +793,9 @@ class _TasksOfCategory extends ConsumerWidget {
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          itemCount: tasks.length,
+          itemCount: filtered.length,
           itemBuilder: (context, index) => TaskGlassCard(
-            task: tasks[index],
+            task: filtered[index],
             categoryColorHex: categoryColorHex,
           ),
         );
