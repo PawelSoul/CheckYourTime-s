@@ -60,6 +60,8 @@ class TaskTimelineItem extends StatelessWidget {
   // --- Oś i kropki ---
   static const double axisLineWidth = 1.0;
   static const double dotRadius = 3.5;
+  /// Szerokość kolorowego segmentu łączącego kropkę start z end (w kolorze zadania).
+  static const double segmentWidth = 4.0;
 
   // --- Pionowe pozycje w bloku ---
   static const double topPadding = 10.0;
@@ -128,6 +130,19 @@ class TaskTimelineItem extends StatelessWidget {
             child: Container(
               width: axisLineWidth,
               color: axisColor,
+            ),
+          ),
+          // Kolorowy segment łączący kropkę start z end (w kolorze zadania)
+          Positioned(
+            left: axisX - segmentWidth / 2,
+            top: startY,
+            height: endY - startY,
+            child: Container(
+              width: segmentWidth,
+              decoration: BoxDecoration(
+                color: entry.categoryColor.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(segmentWidth / 2),
+              ),
             ),
           ),
           // Kropka start (na środku osi)
