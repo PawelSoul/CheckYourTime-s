@@ -163,7 +163,7 @@ class DayScheduleView extends ConsumerWidget {
         ),
         const ScheduleListModeSelector(),
         if (mode == ScheduleListMode.timeline)
-          DayTimelineList(tasks: timelineItems)
+          DayAxisTimeline(tasks: timelineItems)
         else
           GroupedByCategoryView(groups: categoryGroups),
       ],

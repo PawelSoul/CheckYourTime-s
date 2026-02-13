@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:checkyourtime/core/utils/datetime_utils.dart';
 import '../../domain/calendar_models.dart';
 
-/// Minimalistyczna oś dnia: czas startu przy osi, kolorowy segment (długość = czas trwania), tytuł + zakres czasu.
-class DayTimelineList extends StatelessWidget {
-  const DayTimelineList({super.key, required this.tasks});
+/// Model wejściowy: używamy [TimelineItemVm] (title, startAt, endAt?, categoryColor).
+/// Brak endAt lub end < start → traktujemy end = start (minimalny blok, obie kropki).
+
+/// Czysta pionowa oś dnia: jedna linia, dwie kropki na zadanie (start + end), czas przy kropce, tytuł po prawej.
+class DayAxisTimeline extends StatelessWidget {
+  const DayAxisTimeline({super.key, required this.tasks});
 
   final List<TimelineItemVm> tasks;
 
@@ -25,119 +28,179 @@ class DayTimelineList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: sorted.length,
-      itemBuilder: (context, index) => TimelineRow(entry: sorted[index]),
+      itemBuilder: (context, index) => TaskTimelineBlock(entry: sorted[index]),
     );
   }
 }
 
-/// Jedna pozycja na osi: kolumna czasu | oś + segment | tytuł + subline.
-class TimelineRow extends StatelessWidget {
-  const TimelineRow({super.key, required this.entry});
+/// Mapowanie długości (minuty) na wysokość bloku. min=56, max=160.
+double mapDurationToHeight(int durationMinutes) {
+  const minH = 56.0;
+  const maxH = 160.0;
+  if (durationMinutes <= 0) return minH;
+  const span = maxH - minH;
+  final height = minH + (durationMinutes / 60.0).clamp(0.0, 1.0) * span;
+  return height.clamp(minH, maxH);
+}
+
+/// Jedna „karta” na osi: oś + kropka start + kropka end + czasy przy kropkach + tytuł po prawej.
+class TaskTimelineBlock extends StatelessWidget {
+  const TaskTimelineBlock({super.key, required this.entry});
 
   final TimelineItemVm entry;
 
-  static const _timeColumnWidth = 56.0;
-  static const _axisColumnWidth = 24.0;
-  static const _minRowHeight = 56.0;
-  static const _maxRowHeight = 140.0;
-  static const _axisLineWidth = 2.0;
-  static const _segmentWidth = 8.0;
-  static const _dotSize = 6.0;
+  static const double axisX = 28.0;
+  static const double leftColumnWidth = 36.0;
+  static const double dotRadius = 4.0;
+  static const double axisLineWidth = 1.0;
+  static const double blockPaddingTop = 8.0;
+  static const double blockPaddingBottom = 8.0;
+  static const double minEndDotOffset = 24.0; // gdy duration 0: end kropka +24px poniżej start
 
-  static double rowHeightForEntry(TimelineItemVm entry) {
+  static double heightForEntry(TimelineItemVm entry) {
     final durationMinutes = _durationMinutes(entry);
-    return _clampDurationToHeight(durationMinutes);
+    return mapDurationToHeight(durationMinutes);
   }
 
   static int _durationMinutes(TimelineItemVm entry) {
-    if (entry.endAt != null) {
-      final end = entry.endAt!;
-      final start = entry.startAt;
-      if (end.isBefore(start) || end.isAtSameMomentAs(start)) return 0;
-      return end.difference(start).inMinutes;
-    }
-    final sec = entry.durationSec;
-    if (sec <= 0) return 0;
-    return sec ~/ 60;
-  }
-
-  static double _clampDurationToHeight(int durationMinutes) {
-    if (durationMinutes <= 0) return _minRowHeight;
-    const span = _maxRowHeight - _minRowHeight;
-    final height = _minRowHeight + (durationMinutes / 60.0).clamp(0.0, 1.0) * span;
-    return height.clamp(_minRowHeight, _maxRowHeight);
+    final start = entry.startAt;
+    DateTime end = entry.endAt ?? start;
+    if (end.isBefore(start)) end = start;
+    final minutes = end.difference(start).inMinutes;
+    return minutes < 0 ? 0 : minutes;
   }
 
   @override
   Widget build(BuildContext context) {
-    final height = rowHeightForEntry(entry);
+    final height = heightForEntry(entry);
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
     final muted = onSurface.withValues(alpha: 0.6);
-    final separatorColor = theme.dividerColor.withValues(alpha: 0.25);
+    final separatorColor = theme.dividerColor.withValues(alpha: 0.2);
+
+    final startY = blockPaddingTop;
+    int durationMinutes = _durationMinutes(entry);
+    final endY = durationMinutes < 1
+        ? startY + minEndDotOffset
+        : height - blockPaddingBottom;
 
     return Container(
       height: height,
-      padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: separatorColor, width: 1),
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          SizedBox(
-            width: _timeColumnWidth,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  DateTimeUtils.formatTime(entry.startAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 13,
-                    color: muted,
-                  ),
+          // Segment osi (cienka linia pionowa w obrębie bloku)
+          Positioned(
+            left: axisX - axisLineWidth / 2,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: axisLineWidth,
+              color: Colors.white.withValues(alpha: 0.15),
+            ),
+          ),
+          // Kropka start
+          Positioned(
+            left: axisX - dotRadius,
+            top: startY - dotRadius,
+            child: Container(
+              width: dotRadius * 2,
+              height: dotRadius * 2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: entry.categoryColor,
+              ),
+            ),
+          ),
+          // Kropka end
+          Positioned(
+            left: axisX - dotRadius,
+            top: endY - dotRadius,
+            child: Container(
+              width: dotRadius * 2,
+              height: dotRadius * 2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: entry.categoryColor,
+              ),
+            ),
+          ),
+          // Czas startu (na lewo od osi, wyśrodkowany z kropką start)
+          Positioned(
+            left: 0,
+            top: startY - 10,
+            width: axisX - 4,
+            height: 20,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                formatTime(entry.startAt),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 13,
+                  color: muted,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),
           ),
-          SizedBox(
-            width: _axisColumnWidth,
-            child: _AxisSegment(
-              color: entry.categoryColor,
-              lineWidth: _axisLineWidth,
-              segmentWidth: _segmentWidth,
-              dotSize: _dotSize,
+          // Czas końca (na lewo od osi, wyśrodkowany z kropką end)
+          Positioned(
+            left: 0,
+            top: endY - 10,
+            width: axisX - 4,
+            height: 20,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                formatTime(_effectiveEnd(entry)),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 13,
+                  color: muted,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: onSurface,
+          // Tytuł (i opcjonalna subline) po prawej, wyśrodkowany w pionie między kropkami
+          Positioned(
+            left: leftColumnWidth + 12,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      entry.title,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: onSurface,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _subline(entry),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 12,
-                      color: muted,
+                    const SizedBox(height: 2),
+                    Text(
+                      _subline(entry),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: muted,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -146,97 +209,21 @@ class TimelineRow extends StatelessWidget {
     );
   }
 
+  static DateTime _effectiveEnd(TimelineItemVm entry) {
+    final start = entry.startAt;
+    final end = entry.endAt;
+    if (end == null || end.isBefore(start)) return start;
+    return end;
+  }
+
   static String _subline(TimelineItemVm entry) {
-    final startStr = DateTimeUtils.formatTime(entry.startAt);
-    if (entry.endAt == null) return '$startStr – …';
-    return '$startStr – ${DateTimeUtils.formatTime(entry.endAt!)}';
+    final startStr = formatTime(entry.startAt);
+    final endStr = formatTime(_effectiveEnd(entry));
+    return '$startStr – $endStr';
   }
 }
 
-/// Kolumna B: cienka linia pionowa + kolorowy segment na wysokość wiersza + kropka u góry.
-class _AxisSegment extends StatelessWidget {
-  const _AxisSegment({
-    required this.color,
-    required this.lineWidth,
-    required this.segmentWidth,
-    required this.dotSize,
-  });
-
-  final Color color;
-  final double lineWidth;
-  final double segmentWidth;
-  final double dotSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final h = constraints.maxHeight;
-        return CustomPaint(
-          size: Size(_AxisSegmentPainter.columnWidth, h),
-          painter: _AxisSegmentPainter(
-            color: color,
-            lineWidth: lineWidth,
-            segmentWidth: segmentWidth,
-            dotSize: dotSize,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _AxisSegmentPainter extends CustomPainter {
-  _AxisSegmentPainter({
-    required this.color,
-    required this.lineWidth,
-    required this.segmentWidth,
-    required this.dotSize,
-  });
-
-  static const double columnWidth = 24.0;
-
-  final Color color;
-  final double lineWidth;
-  final double segmentWidth;
-  final double dotSize;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final centerX = size.width / 2;
-    final h = size.height;
-
-    // Linia pionowa (oś)
-    final linePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.15)
-      ..strokeWidth = lineWidth
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(Offset(centerX, 0), Offset(centerX, h), linePaint);
-
-    // Kolorowy segment (prostokąt na pełną wysokość wiersza)
-    final segmentLeft = centerX - segmentWidth / 2;
-    final segmentPaint = Paint()
-      ..color = color.withValues(alpha: 0.85)
-      ..style = PaintingStyle.fill;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(segmentLeft, 0, segmentWidth, h),
-        const Radius.circular(2),
-      ),
-      segmentPaint,
-    );
-
-    // Kropka u góry (początek segmentu)
-    final dotPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(centerX, dotSize), dotSize, dotPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AxisSegmentPainter old) =>
-      old.color != color ||
-      old.lineWidth != lineWidth ||
-      old.segmentWidth != segmentWidth ||
-      old.dotSize != dotSize;
+/// Format czasu HH:mm. Używa [DateTimeUtils.formatTime].
+String formatTime(DateTime dateTime) {
+  return DateTimeUtils.formatTime(dateTime);
 }
