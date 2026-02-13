@@ -423,6 +423,7 @@ class SettingsSegmentedControl<T> extends StatelessWidget {
                 child: Center(
                   child: Text(
                     label,
+                    textAlign: TextAlign.center,
                     style: theme.textTheme.labelLarge?.copyWith(
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       color: isSelected ? accent : theme.colorScheme.onSurface.withOpacity(0.7),
