@@ -1,28 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'package:checkyourtime/core/utils/datetime_utils.dart';
 import 'package:checkyourtime/core/widgets/glass_card.dart';
 import '../../domain/calendar_models.dart';
 
-/// Lista sesji w trybie „Według kategorii”: grupy glass card z nagłówkiem (kropka + nazwa + suma min) i wierszami.
+/// Lista sesji w trybie „Według kategorii”: grupy z nagłówkiem (kropka + nazwa + suma) i prostą listą sesji [1] HH:mm.
 class GroupedByCategoryView extends StatelessWidget {
   const GroupedByCategoryView({super.key, required this.groups});
 
   final List<CategoryGroupVm> groups;
-
-  static String _timeStr(DateTime d) {
-    final h = d.hour.toString().padLeft(2, '0');
-    final m = d.minute.toString().padLeft(2, '0');
-    final s = d.second.toString().padLeft(2, '0');
-    return '$h:$m:$s';
-  }
-
-  static String _formatDuration(int sec) {
-    final m = sec ~/ 60;
-    final s = sec % 60;
-    if (m > 0 && s > 0) return '$m min $s s';
-    if (m > 0) return '$m min';
-    return '$s s';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +22,9 @@ class GroupedByCategoryView extends StatelessWidget {
       itemBuilder: (context, index) {
         final group = groups[index];
         final totalSec = group.items.fold<int>(0, (sum, i) => sum + i.durationSec);
-        final totalStr = _formatDuration(totalSec);
+        final totalStr = DateTimeUtils.formatDurationSeconds(totalSec);
+        final sortedItems = List<TimelineItemVm>.from(group.items)
+          ..sort((a, b) => a.startAt.compareTo(b.startAt));
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -46,68 +34,153 @@ class GroupedByCategoryView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: group.categoryColor,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${group.categoryName} • $totalStr',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                _CategoryHeader(
+                  categoryName: group.categoryName,
+                  categoryColor: group.categoryColor,
+                  totalDurationStr: totalStr,
                 ),
                 const SizedBox(height: 12),
-                ...group.items.map((item) {
-                  final timeStr = item.endAt != null
-                      ? '${_timeStr(item.startAt)}–${_timeStr(item.endAt!)} • ${_formatDuration(item.durationSec)}'
-                      : '${_timeStr(item.startAt)} • ${_formatDuration(item.durationSec)}';
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 130,
-                          child: Text(
-                            timeStr,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.7),
-                                ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            item.title,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
+                if (sortedItems.isEmpty)
+                  _EmptySessionsHint()
+                else
+                  _SessionList(items: sortedItems),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Nagłówek kategorii: [kropka] Nazwa • SUMA_CZASU (semi-bold).
+class _CategoryHeader extends StatelessWidget {
+  const _CategoryHeader({
+    required this.categoryName,
+    required this.categoryColor,
+    required this.totalDurationStr,
+  });
+
+  final String categoryName;
+  final Color categoryColor;
+  final String totalDurationStr;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: categoryColor,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '$categoryName • $totalDurationStr',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Lista sesji: [1] HH:mm, [2] HH:mm, … z lekkim separatorem między wierszami.
+class _SessionList extends StatelessWidget {
+  const _SessionList({required this.items});
+
+  final List<TimelineItemVm> items;
+
+  static const double _rowSpacing = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(height: _rowSpacing),
+          _SessionRow(
+            index: i + 1,
+            startAt: items[i].startAt,
+            counterColor: muted,
+            theme: theme,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Jedna sesja: [index]  HH:mm (mniejsza czcionka, tabular figures).
+class _SessionRow extends StatelessWidget {
+  const _SessionRow({
+    required this.index,
+    required this.startAt,
+    required this.counterColor,
+    required this.theme,
+  });
+
+  final int index;
+  final DateTime startAt;
+  final Color counterColor;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 28,
+          child: Text(
+            '[$index]',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 13,
+              color: counterColor,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          DateTimeUtils.formatTime(startAt),
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: 13,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Gdy brak sesji w kategorii.
+class _EmptySessionsHint extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        'Brak sesji',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          fontSize: 13,
+        ),
+      ),
     );
   }
 }
