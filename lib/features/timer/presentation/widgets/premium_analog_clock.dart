@@ -64,7 +64,7 @@ class PremiumAnalogClock extends StatelessWidget {
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-              final side = isFinite(constraints.maxWidth)
+              final side = constraints.hasBoundedWidth
                   ? constraints.maxWidth.clamp(0.0, 320.0)
                   : 280.0;
               final radius = side * 0.38;
