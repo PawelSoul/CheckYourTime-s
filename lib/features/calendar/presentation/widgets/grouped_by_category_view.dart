@@ -95,7 +95,7 @@ class _CategoryHeader extends StatelessWidget {
   }
 }
 
-/// Lista sesji: [1] HH:mm, [2] HH:mm, … z lekkim separatorem między wierszami.
+/// Lista sesji: [1] HH:mm – HH:mm, [2] …, z lekkim separatorem między wierszami.
 class _SessionList extends StatelessWidget {
   const _SessionList({required this.items});
 
@@ -116,6 +116,7 @@ class _SessionList extends StatelessWidget {
           _SessionRow(
             index: i + 1,
             startAt: items[i].startAt,
+            endAt: items[i].endAt,
             counterColor: muted,
             theme: theme,
           ),
@@ -125,22 +126,27 @@ class _SessionList extends StatelessWidget {
   }
 }
 
-/// Jedna sesja: [index]  HH:mm (mniejsza czcionka, tabular figures).
+/// Jedna sesja: [index]  godzina rozpoczęcia – godzina zakończenia.
 class _SessionRow extends StatelessWidget {
   const _SessionRow({
     required this.index,
     required this.startAt,
+    this.endAt,
     required this.counterColor,
     required this.theme,
   });
 
   final int index;
   final DateTime startAt;
+  final DateTime? endAt;
   final Color counterColor;
   final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
+    final end = endAt != null && !endAt!.isBefore(startAt) ? endAt! : startAt;
+    final timeStr = '${DateTimeUtils.formatTime(startAt)} – ${DateTimeUtils.formatTime(end)}';
+
     return Row(
       children: [
         SizedBox(
@@ -155,12 +161,15 @@ class _SessionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          DateTimeUtils.formatTime(startAt),
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontSize: 13,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
-            fontFeatures: const [FontFeature.tabularFigures()],
+        Expanded(
+          child: Text(
+            timeStr,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 13,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
