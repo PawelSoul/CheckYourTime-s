@@ -62,6 +62,8 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                   ? PremiumAnalogClock(
                       elapsed: state.elapsed,
                       categoryColorHex: categoryColorHex,
+                      progressRingVisible: viewSettings.premiumProgressRingVisible,
+                      minuteHandVisible: viewSettings.premiumMinuteHandVisible,
                     )
                   : viewSettings.viewMode == TimerViewMode.analogClassic
                       ? AnalogStopwatchView(elapsed: state.elapsed)

@@ -27,6 +27,8 @@ class PremiumAnalogClock extends StatelessWidget {
     required this.elapsed,
     this.categoryColorHex,
     this.progress,
+    this.progressRingVisible = true,
+    this.minuteHandVisible = true,
   });
 
   final Duration elapsed;
@@ -34,6 +36,10 @@ class PremiumAnalogClock extends StatelessWidget {
   final String? categoryColorHex;
   /// Postęp 0..1 (np. w obrębie minuty). Gdy null: (elapsed % 1 min) / 1 min.
   final double? progress;
+  /// Czy rysować kolorowy pierścień postępu (obrys).
+  final bool progressRingVisible;
+  /// Czy rysować wskazówkę minut (w kolorze neutralnym).
+  final bool minuteHandVisible;
 
   static double _progressFromElapsed(Duration elapsed) {
     final ms = elapsed.inMilliseconds % 60000;
@@ -77,6 +83,8 @@ class PremiumAnalogClock extends StatelessWidget {
                     progress: effectiveProgress,
                     progressColor: progressColor,
                     textColor: textColor,
+                    progressRingVisible: progressRingVisible,
+                    minuteHandVisible: minuteHandVisible,
                   ),
                   size: Size(side, side),
                 ),
@@ -118,12 +126,16 @@ class PremiumAnalogClockPainter extends CustomPainter {
     required this.progress,
     required this.progressColor,
     required this.textColor,
+    this.progressRingVisible = true,
+    this.minuteHandVisible = true,
   });
 
   final Duration elapsed;
   final double progress;
   final Color progressColor;
   final Color textColor;
+  final bool progressRingVisible;
+  final bool minuteHandVisible;
 
   static const double _twoPi = 2 * math.pi;
 
@@ -135,8 +147,9 @@ class PremiumAnalogClockPainter extends CustomPainter {
     _drawDialBackground(canvas, center, radius);
     _drawOuterRing(canvas, center, radius);
     _drawMinuteTicks(canvas, center, radius);
-    _drawProgressRing(canvas, center, radius);
-    _drawHand(canvas, center, radius);
+    if (progressRingVisible) _drawProgressRing(canvas, center, radius);
+    if (minuteHandVisible) _drawMinuteHand(canvas, center, radius);
+    _drawSecondHand(canvas, center, radius);
     _drawCenterKnob(canvas, center);
   }
 
@@ -222,7 +235,23 @@ class PremiumAnalogClockPainter extends CustomPainter {
     );
   }
 
-  void _drawHand(Canvas canvas, Offset center, double radius) {
+  void _drawMinuteHand(Canvas canvas, Offset center, double radius) {
+    final totalMinutes = elapsed.inMinutes + elapsed.inSeconds / 60.0 + elapsed.inMilliseconds / 60000.0;
+    final angle = (totalMinutes % 60) / 60.0 * _twoPi - math.pi / 2;
+    final length = radius * 0.62;
+    final end = Offset(
+      center.dx + length * math.cos(angle),
+      center.dy + length * math.sin(angle),
+    );
+    final paint = Paint()
+      ..color = textColor.withOpacity(_handOpacity)
+      ..strokeWidth = _handStrokeWidth * 1.1
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(center, end, paint);
+  }
+
+  void _drawSecondHand(Canvas canvas, Offset center, double radius) {
     final ms = elapsed.inMilliseconds % 60000;
     final angle = (ms / 60000.0) * _twoPi - math.pi / 2;
     final length = radius * 0.82;
@@ -255,6 +284,8 @@ class PremiumAnalogClockPainter extends CustomPainter {
     return oldDelegate.elapsed != elapsed ||
         oldDelegate.progress != progress ||
         oldDelegate.progressColor != progressColor ||
-        oldDelegate.textColor != textColor;
+        oldDelegate.textColor != textColor ||
+        oldDelegate.progressRingVisible != progressRingVisible ||
+        oldDelegate.minuteHandVisible != minuteHandVisible;
   }
 }

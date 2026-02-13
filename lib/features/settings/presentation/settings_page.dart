@@ -69,6 +69,23 @@ class SettingsPage extends ConsumerWidget {
                       value: settings.glowVisible,
                       onChanged: (v) => notifier.setGlowVisible(v),
                     ),
+                    if (settings.viewMode == TimerViewMode.analogPremium) ...[
+                      const SizedBox(height: 12),
+                      _divider(context),
+                      _SettingsSwitchTile(
+                        title: 'Kolorowy obrys postępu',
+                        subtitle: 'Pierścień wokół tarczy (zegar premium)',
+                        value: settings.premiumProgressRingVisible,
+                        onChanged: (v) => notifier.setPremiumProgressRingVisible(v),
+                      ),
+                      _divider(context),
+                      _SettingsSwitchTile(
+                        title: 'Wskazówka minut',
+                        subtitle: 'Wskazówka pokazująca upływające minuty (zegar premium)',
+                        value: settings.premiumMinuteHandVisible,
+                        onChanged: (v) => notifier.setPremiumMinuteHandVisible(v),
+                      ),
+                    ],
                     if (settings.viewMode == TimerViewMode.analogClassic) ...[
                       const SizedBox(height: 12),
                       _divider(context),

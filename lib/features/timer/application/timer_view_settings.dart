@@ -7,6 +7,8 @@ const _keyAnalogNumbersStyle = 'analog_numbers_style';
 const _keyAnalogNumbersVisible = 'analog_numbers_visible';
 const _keyProgressBarVisible = 'timer_progress_bar_visible';
 const _keyGlowVisible = 'timer_glow_visible';
+const _keyPremiumProgressRingVisible = 'timer_premium_progress_ring_visible';
+const _keyPremiumMinuteHandVisible = 'timer_premium_minute_hand_visible';
 
 enum TimerViewMode { digital, analogClassic, analogPremium }
 
@@ -33,6 +35,8 @@ class TimerViewSettings {
     this.analogNumbersVisible = true,
     this.progressBarVisible = false,
     this.glowVisible = false,
+    this.premiumProgressRingVisible = true,
+    this.premiumMinuteHandVisible = true,
   });
 
   final TimerViewMode viewMode;
@@ -41,6 +45,8 @@ class TimerViewSettings {
   final bool analogNumbersVisible;
   final bool progressBarVisible;
   final bool glowVisible;
+  final bool premiumProgressRingVisible;
+  final bool premiumMinuteHandVisible;
 
   TimerViewSettings copyWith({
     TimerViewMode? viewMode,
@@ -49,6 +55,8 @@ class TimerViewSettings {
     bool? analogNumbersVisible,
     bool? progressBarVisible,
     bool? glowVisible,
+    bool? premiumProgressRingVisible,
+    bool? premiumMinuteHandVisible,
   }) {
     return TimerViewSettings(
       viewMode: viewMode ?? this.viewMode,
@@ -57,6 +65,8 @@ class TimerViewSettings {
       analogNumbersVisible: analogNumbersVisible ?? this.analogNumbersVisible,
       progressBarVisible: progressBarVisible ?? this.progressBarVisible,
       glowVisible: glowVisible ?? this.glowVisible,
+      premiumProgressRingVisible: premiumProgressRingVisible ?? this.premiumProgressRingVisible,
+      premiumMinuteHandVisible: premiumMinuteHandVisible ?? this.premiumMinuteHandVisible,
     );
   }
 }
@@ -81,6 +91,8 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     final numbersVisible = _prefs!.getBool(_keyAnalogNumbersVisible) ?? true;
     final progressBarVisible = _prefs!.getBool(_keyProgressBarVisible) ?? false;
     final glowVisible = _prefs!.getBool(_keyGlowVisible) ?? false;
+    final premiumProgressRingVisible = _prefs!.getBool(_keyPremiumProgressRingVisible) ?? true;
+    final premiumMinuteHandVisible = _prefs!.getBool(_keyPremiumMinuteHandVisible) ?? true;
     state = TimerViewSettings(
       viewMode: viewMode,
       analogHandsMode: analogHandsMode,
@@ -88,6 +100,8 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
       analogNumbersVisible: numbersVisible,
       progressBarVisible: progressBarVisible,
       glowVisible: glowVisible,
+      premiumProgressRingVisible: premiumProgressRingVisible,
+      premiumMinuteHandVisible: premiumMinuteHandVisible,
     );
   }
 
@@ -151,5 +165,17 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setBool(_keyGlowVisible, visible);
     state = state.copyWith(glowVisible: visible);
+  }
+
+  Future<void> setPremiumProgressRingVisible(bool visible) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_keyPremiumProgressRingVisible, visible);
+    state = state.copyWith(premiumProgressRingVisible: visible);
+  }
+
+  Future<void> setPremiumMinuteHandVisible(bool visible) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setBool(_keyPremiumMinuteHandVisible, visible);
+    state = state.copyWith(premiumMinuteHandVisible: visible);
   }
 }
