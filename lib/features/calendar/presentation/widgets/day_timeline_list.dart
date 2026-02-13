@@ -26,7 +26,7 @@ class DayAxisTimeline extends StatelessWidget {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(20, 12, 16, 24),
       itemCount: sorted.length,
       itemBuilder: (context, index) => TaskTimelineBlock(entry: sorted[index]),
     );
@@ -49,8 +49,8 @@ class TaskTimelineBlock extends StatelessWidget {
 
   final TimelineItemVm entry;
 
-  /// Kolumna A: gutter na etykiety czasu (HH:mm). Szerokość wystarczająca, żeby nie przycinać.
-  static const double timeGutterWidth = 56.0;
+  /// Kolumna A: gutter na etykiety czasu (HH:mm). Szerokość tak, by kafelek z „10:30” był w całości.
+  static const double timeGutterWidth = 72.0;
   /// Kolumna B: tylko oś + kropki, oś wyśrodkowana w tej kolumnie.
   static const double axisColumnWidth = 24.0;
   /// Pozycja X środka osi (timeGutterWidth + axisColumnWidth/2).
