@@ -6,9 +6,9 @@ import '../../../../data/db/daos/sessions_dao.dart';
 import '../../../tasks/tasks_providers.dart';
 import '../../application/calendar_providers.dart';
 import '../../domain/calendar_models.dart';
+import 'day_timeline_list.dart';
 import 'grouped_by_category_view.dart';
 import 'schedule_list_mode_selector.dart';
-import 'timeline_view.dart';
 
 class DayScheduleView extends ConsumerWidget {
   const DayScheduleView({
@@ -163,7 +163,7 @@ class DayScheduleView extends ConsumerWidget {
         ),
         const ScheduleListModeSelector(),
         if (mode == ScheduleListMode.timeline)
-          TimelineView(items: timelineItems)
+          DayTimelineList(tasks: timelineItems)
         else
           GroupedByCategoryView(groups: categoryGroups),
       ],
