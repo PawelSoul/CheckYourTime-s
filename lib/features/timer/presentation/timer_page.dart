@@ -5,6 +5,7 @@ import '../application/timer_controller.dart';
 import '../application/timer_view_settings.dart';
 import '../../tasks/tasks_providers.dart';
 import 'widgets/alarm_countdown_banner.dart';
+import 'widgets/analog_stopwatch_view.dart';
 import 'widgets/premium_analog_clock.dart';
 import 'widgets/category_chip.dart';
 import 'widgets/segmented_hour_progress_bar.dart';
@@ -57,12 +58,14 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                 ),
               ],
               const SizedBox(height: 16),
-              viewSettings.viewMode == TimerViewMode.analog
+              viewSettings.viewMode == TimerViewMode.analogPremium
                   ? PremiumAnalogClock(
                       elapsed: state.elapsed,
                       categoryColorHex: categoryColorHex,
                     )
-                  : TimerClock(elapsed: state.elapsed),
+                  : viewSettings.viewMode == TimerViewMode.analogClassic
+                      ? AnalogStopwatchView(elapsed: state.elapsed)
+                      : TimerClock(elapsed: state.elapsed),
               if (state.activeCategoryId != null) ...[
                 const SizedBox(height: 12),
                 CategoryChip(

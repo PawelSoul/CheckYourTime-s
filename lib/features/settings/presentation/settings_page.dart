@@ -32,17 +32,27 @@ class SettingsPage extends ConsumerWidget {
             builder: (context, ref, _) {
               final settings = ref.watch(timerViewSettingsProvider);
               final notifier = ref.read(timerViewSettingsProvider.notifier);
+              final viewLabel = settings.viewMode == TimerViewMode.digital
+                  ? 'Cyfrowy'
+                  : settings.viewMode == TimerViewMode.analogClassic
+                      ? 'Analog (klasyczny)'
+                      : 'Analog (premium)';
               return SettingsSectionCard(
                 title: 'Timer',
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SettingsSegmentedControl<String>(
-                      options: const ['Cyfrowy', 'Analogowy'],
-                      value: settings.viewMode == TimerViewMode.digital ? 'Cyfrowy' : 'Analogowy',
-                      onChanged: (v) => notifier.setViewMode(
-                        v == 'Cyfrowy' ? TimerViewMode.digital : TimerViewMode.analog,
-                      ),
+                      options: const ['Cyfrowy', 'Analog (klasyczny)', 'Analog (premium)'],
+                      value: viewLabel,
+                      onChanged: (v) {
+                        final mode = v == 'Cyfrowy'
+                            ? TimerViewMode.digital
+                            : v == 'Analog (klasyczny)'
+                                ? TimerViewMode.analogClassic
+                                : TimerViewMode.analogPremium;
+                        notifier.setViewMode(mode);
+                      },
                     ),
                     const SizedBox(height: 12),
                     _divider(context),
@@ -59,7 +69,7 @@ class SettingsPage extends ConsumerWidget {
                       value: settings.glowVisible,
                       onChanged: (v) => notifier.setGlowVisible(v),
                     ),
-                    if (settings.viewMode == TimerViewMode.analog) ...[
+                    if (settings.viewMode == TimerViewMode.analogClassic) ...[
                       const SizedBox(height: 12),
                       _divider(context),
                       SettingsOptionTile<AnalogHandsMode>(
@@ -82,81 +92,6 @@ class SettingsPage extends ConsumerWidget {
                     ],
                   ],
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: _spacingBetweenCards),
-          Consumer(
-            builder: (context, ref, _) {
-              final settings = ref.watch(timerViewSettingsProvider);
-              final notifier = ref.read(timerViewSettingsProvider.notifier);
-              if (settings.viewMode != TimerViewMode.analog) return const SizedBox.shrink();
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: _spacingBetweenCards),
-                  SettingsSectionCard(
-                title: 'Liczby na tarczy',
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SettingsOptionTile<bool>(
-                      title: 'Widoczne',
-                      value: true,
-                      groupValue: settings.analogNumbersVisible,
-                      onTap: () => notifier.setAnalogNumbersVisible(true),
-                      trailingType: TrailingType.radio,
-                    ),
-                    _divider(context),
-                    SettingsOptionTile<bool>(
-                      title: 'Ukryte',
-                      value: false,
-                      groupValue: settings.analogNumbersVisible,
-                      onTap: () => notifier.setAnalogNumbersVisible(false),
-                      trailingType: TrailingType.radio,
-                    ),
-                  ],
-                ),
-                  ),
-                ],
-              );
-            },
-          ),
-          Consumer(
-            builder: (context, ref, _) {
-              final settings = ref.watch(timerViewSettingsProvider);
-              final notifier = ref.read(timerViewSettingsProvider.notifier);
-              if (settings.viewMode != TimerViewMode.analog || !settings.analogNumbersVisible) {
-                return const SizedBox.shrink();
-              }
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: _spacingBetweenCards),
-                  SettingsSectionCard(
-                title: 'Styl cyfr',
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SettingsOptionTile<AnalogNumbersStyle>(
-                      title: 'Duże i czytelne',
-                      value: AnalogNumbersStyle.large,
-                      groupValue: settings.analogNumbersStyle,
-                      onTap: () => notifier.setAnalogNumbersStyle(AnalogNumbersStyle.large),
-                      trailingType: TrailingType.radio,
-                    ),
-                    _divider(context),
-                    SettingsOptionTile<AnalogNumbersStyle>(
-                      title: 'Subtelne',
-                      value: AnalogNumbersStyle.subtle,
-                      groupValue: settings.analogNumbersStyle,
-                      onTap: () => notifier.setAnalogNumbersStyle(AnalogNumbersStyle.subtle),
-                      trailingType: TrailingType.radio,
-                    ),
-                  ],
-                ),
-                  ),
-                ],
               );
             },
           ),

@@ -8,7 +8,7 @@ const _keyAnalogNumbersVisible = 'analog_numbers_visible';
 const _keyProgressBarVisible = 'timer_progress_bar_visible';
 const _keyGlowVisible = 'timer_glow_visible';
 
-enum TimerViewMode { digital, analog }
+enum TimerViewMode { digital, analogClassic, analogPremium }
 
 /// 2 = tylko min+sek, 3 = godz+min+sek.
 enum AnalogHandsMode { two, three }
@@ -71,7 +71,7 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
   Future<void> _load() async {
     _prefs ??= await SharedPreferences.getInstance();
     final modeStr = _prefs!.getString(_keyTimerViewMode);
-    final viewMode = modeStr == 'analog' ? TimerViewMode.analog : TimerViewMode.digital;
+    final viewMode = TimerViewSettingsNotifier._viewModeFromString(modeStr);
     final handsInt = _prefs!.getInt(_keyAnalogHandsMode);
     final analogHandsMode =
         handsInt == 2 ? AnalogHandsMode.two : AnalogHandsMode.three;
@@ -91,9 +91,32 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     );
   }
 
+  static TimerViewMode _viewModeFromString(String? s) {
+    switch (s) {
+      case 'analog_classic':
+        return TimerViewMode.analogClassic;
+      case 'analog_premium':
+      case 'analog': // legacy
+        return TimerViewMode.analogPremium;
+      default:
+        return TimerViewMode.digital;
+    }
+  }
+
+  static String _viewModeToString(TimerViewMode mode) {
+    switch (mode) {
+      case TimerViewMode.digital:
+        return 'digital';
+      case TimerViewMode.analogClassic:
+        return 'analog_classic';
+      case TimerViewMode.analogPremium:
+        return 'analog_premium';
+    }
+  }
+
   Future<void> setViewMode(TimerViewMode mode) async {
     _prefs ??= await SharedPreferences.getInstance();
-    await _prefs!.setString(_keyTimerViewMode, mode == TimerViewMode.analog ? 'analog' : 'digital');
+    await _prefs!.setString(_keyTimerViewMode, _viewModeToString(mode));
     state = state.copyWith(viewMode: mode);
   }
 
