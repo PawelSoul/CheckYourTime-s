@@ -752,9 +752,9 @@ class _TasksOfCategory extends ConsumerWidget {
 
     return tasksAsync.when(
       data: (tasks) {
-        // Filtruj tylko ukończone zadania (isArchived == true) i według okresu
+        // Filtruj według okresu (zadania już są przefiltrowane po zakończonych sesjach w providerze)
         final filtered = tasks
-            .where((t) => t.isArchived && filter.contains(t.createdAt))
+            .where((t) => filter.contains(t.createdAt))
             .toList();
         
         if (filtered.isEmpty) {

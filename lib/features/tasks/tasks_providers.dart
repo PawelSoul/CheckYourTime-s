@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/db/daos/categories_dao.dart';
@@ -35,14 +37,13 @@ final categoryByIdProvider =
   }
 });
 
-/// Stream zadań dla danej kategorii (po categoryId) - tylko ukończone (isArchived == true).
+/// Stream zadań dla danej kategorii (po categoryId) - tylko zadania z zakończonymi sesjami.
 final tasksByCategoryProvider =
     StreamProvider.autoDispose.family<List<TaskRow>, String>((ref, categoryId) {
-  final dao = ref.watch(tasksDaoProvider);
-  return dao.watchByCategoryId(categoryId, includeArchived: true).map((tasks) {
-    // Filtruj tylko ukończone zadania (isArchived == true)
-    return tasks.where((t) => t.isArchived).toList();
-  });
+  final sessionsDao = ref.watch(sessionsDaoProvider);
+  
+  // Użyj bezpośrednio metody z joinem, która zwraca zadania z zakończonymi sesjami
+  return sessionsDao.watchTasksWithCompletedSessionsInCategory(categoryId);
 });
 
 /// Wybrana kategoria (do pokazania tasków po prawej).

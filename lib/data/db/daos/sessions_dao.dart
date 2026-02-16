@@ -146,6 +146,66 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
   Future<int> deleteAllSessions() {
     return delete(sessionsTable).go();
   }
+
+  /// Zwraca listę taskId zadań, które mają przynajmniej jedną zakończoną sesję w danej kategorii.
+  Future<List<String>> getTaskIdsWithCompletedSessionsInCategory(String categoryId) async {
+    final q = select(sessionsTable).join([
+      innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
+    ])
+      ..where(
+        tasksTable.categoryId.equals(categoryId) &
+        sessionsTable.endAt.isNotNull(),
+      );
+    
+    final rows = await q.get();
+    final taskIds = rows
+        .map((r) => r.readTable(sessionsTable).taskId)
+        .toSet()
+        .toList();
+    return taskIds;
+  }
+
+  /// Stream taskId zadań z zakończonymi sesjami w kategorii.
+  Stream<List<String>> watchTaskIdsWithCompletedSessionsInCategory(String categoryId) {
+    final q = select(sessionsTable).join([
+      innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
+    ])
+      ..where(
+        tasksTable.categoryId.equals(categoryId) &
+        sessionsTable.endAt.isNotNull(),
+      );
+    
+    return q.watch().map((rows) {
+      return rows
+          .map((r) => r.readTable(sessionsTable).taskId)
+          .toSet()
+          .toList();
+    });
+  }
+
+  /// Stream zadań z zakończonymi sesjami w kategorii (z joinem).
+  Stream<List<TaskRow>> watchTasksWithCompletedSessionsInCategory(String categoryId) {
+    final q = select(sessionsTable).join([
+      innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
+    ])
+      ..where(
+        tasksTable.categoryId.equals(categoryId) &
+        sessionsTable.endAt.isNotNull(),
+      )
+      ..orderBy([(t) => OrderingTerm(expression: tasksTable.createdAt, mode: OrderingMode.desc)]);
+    
+    return q.watch().map((rows) {
+      // Zwróć unikalne zadania (po taskId)
+      final taskMap = <String, TaskRow>{};
+      for (final row in rows) {
+        final task = row.readTable(tasksTable);
+        if (!taskMap.containsKey(task.id)) {
+          taskMap[task.id] = task;
+        }
+      }
+      return taskMap.values.toList();
+    });
+  }
 }
 
 class SessionWithTask {
