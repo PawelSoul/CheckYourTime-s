@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/tasks_date_filter.dart';
+import '../../tasks_providers.dart';
 
 /// Uproszczony pasek filtra: tylko "Wszystkie" / "Ten miesiąc".
 class SimpleDateFilterBar extends ConsumerWidget {

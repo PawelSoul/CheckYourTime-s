@@ -741,7 +741,7 @@ class _YearPickerDialogState extends State<_YearPickerDialog> {
 }
 
 class _TasksOfCategory extends ConsumerWidget {
-  const _TasksOfCategory({required this.categoryId});
+  const _TasksOfCategory({super.key, required this.categoryId});
 
   final String categoryId;
 
