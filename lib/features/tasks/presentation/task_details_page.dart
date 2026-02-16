@@ -217,54 +217,73 @@ class _MainInfoSection extends StatelessWidget {
   }
 }
 
-class _CzasSection extends StatelessWidget {
+class _CzasSection extends ConsumerWidget {
   const _CzasSection({required this.task});
 
   final TaskRow task;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final createdAt = DateTime.fromMillisecondsSinceEpoch(task.createdAt);
-    final endTime = createdAt.add(Duration(seconds: task.plannedTimeSec));
+    
+    // Pobierz rzeczywistą długość zadania z sesji
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    final sessionsStream = sessionsDao.watchSessionsByTaskId(task.id);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.08),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Czas',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+    return StreamBuilder<List<SessionRow>>(
+      stream: sessionsStream,
+      builder: (context, snapshot) {
+        final sessions = snapshot.data ?? [];
+        // Suma czasu z wszystkich ukończonych sesji
+        final totalDurationSec = sessions.fold<int>(
+          0,
+          (sum, session) => sum + (session.durationSec as int),
+        );
+        
+        // Jeśli nie ma sesji, użyj plannedTimeSec jako fallback
+        final displayDurationSec = totalDurationSec > 0 ? totalDurationSec : task.plannedTimeSec;
+        final endTime = createdAt.add(Duration(seconds: displayDurationSec));
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.08),
+            ),
           ),
-          const SizedBox(height: 12),
-          _RowLabelValue(label: 'Data', value: DateTimeUtils.formatDateFromEpochMs(task.createdAt)),
-          const SizedBox(height: 8),
-          _RowLabelValue(
-            label: 'Godzina rozpoczęcia',
-            value: DateTimeUtils.formatTimeWithSecondsFromEpochMs(task.createdAt),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Czas',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _RowLabelValue(label: 'Data', value: DateTimeUtils.formatDateFromEpochMs(task.createdAt)),
+              const SizedBox(height: 8),
+              _RowLabelValue(
+                label: 'Godzina rozpoczęcia',
+                value: DateTimeUtils.formatTimeWithSecondsFromEpochMs(task.createdAt),
+              ),
+              const SizedBox(height: 8),
+              _RowLabelValue(
+                label: 'Długość zadania',
+                value: DateTimeUtils.formatDurationSeconds(displayDurationSec),
+              ),
+              const SizedBox(height: 8),
+              _RowLabelValue(
+                label: 'Godzina zakończenia',
+                value: DateTimeUtils.formatTimeWithSeconds(endTime),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          _RowLabelValue(
-            label: 'Długość zadania',
-            value: DateTimeUtils.formatDurationSeconds(task.plannedTimeSec),
-          ),
-          const SizedBox(height: 8),
-          _RowLabelValue(
-            label: 'Godzina zakończenia',
-            value: DateTimeUtils.formatTimeWithSeconds(endTime),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
