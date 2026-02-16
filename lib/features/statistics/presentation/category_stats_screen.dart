@@ -104,8 +104,9 @@ class _CategoryStatsBodyState extends ConsumerState<CategoryStatsBody> {
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
           // Przełącznik zakresu
