@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:checkyourtime/core/constants/category_colors.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
+import '../../statistics/domain/models/statistics_models.dart';
 import '../application/tasks_date_filter.dart';
 import '../tasks_providers.dart';
 import 'widgets/category_chips_bar.dart';
+import 'widgets/category_summary_card.dart';
 import 'widgets/minimal_task_card.dart';
 import 'widgets/simple_date_filter_bar.dart';
 
@@ -68,6 +71,9 @@ class TasksListPage extends ConsumerWidget {
           // Pasek filtra okresu
           if (selectedCategory != null && selectedCategory.isNotEmpty)
             const SimpleDateFilterBar(),
+          // Karta „Podsumowanie kategorii” nad listą (tylko gdy kategoria wybrana)
+          if (selectedCategory != null && selectedCategory.isNotEmpty)
+            _CategorySummaryCardPlaceholder(categoryId: selectedCategory),
           // Lista zadań
           Expanded(
             child: selectedCategory == null || selectedCategory.isEmpty
@@ -736,6 +742,50 @@ class _YearPickerDialogState extends State<_YearPickerDialog> {
           child: const Text('OK'),
         ),
       ],
+    );
+  }
+}
+
+/// Placeholder wyświetlający kartę „Podsumowanie kategorii” i nawigację do statystyk.
+class _CategorySummaryCardPlaceholder extends ConsumerWidget {
+  const _CategorySummaryCardPlaceholder({required this.categoryId});
+
+  final String categoryId;
+
+  static StatsRange _initialRangeFromFilter(TasksDateFilterState filter) {
+    final now = DateTime.now();
+    if (filter.kind == TasksDateFilterKind.month &&
+        filter.year == now.year &&
+        filter.month == now.month) {
+      return StatsRange.thisMonth;
+    }
+    return StatsRange.all;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final category = ref.watch(categoryByIdProvider(categoryId));
+    final filter = ref.watch(tasksDateFilterProvider);
+    final categoryName = category?.name ?? 'Kategoria';
+    final categoryColorHex = category?.colorHex;
+    final initialRange = _initialRangeFromFilter(filter);
+
+    return CategorySummaryCard(
+      categoryId: categoryId,
+      categoryName: categoryName,
+      categoryColorHex: categoryColorHex,
+      currentFilterState: filter,
+      onTap: () {
+        context.push(
+          '/tasks/category-stats',
+          extra: <String, dynamic>{
+            'categoryId': categoryId,
+            'categoryName': categoryName,
+            'categoryColorHex': categoryColorHex,
+            'initialRange': initialRange == StatsRange.thisMonth ? 'thisMonth' : 'all',
+          },
+        );
+      },
     );
   }
 }

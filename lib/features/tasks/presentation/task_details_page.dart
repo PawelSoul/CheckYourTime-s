@@ -7,7 +7,6 @@ import '../../../data/db/daos/tasks_dao.dart';
 import '../../../data/db/daos/sessions_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
-import '../../statistics/presentation/widgets/category_stats_panel.dart';
 import '../application/task_notes_provider.dart';
 import '../tasks_providers.dart';
 
@@ -98,7 +97,6 @@ class _TaskDetailsPageState extends ConsumerState<TaskDetailsPage> {
             const SizedBox(height: 24),
             _TilesSection(
               taskId: _task.id,
-              categoryId: _task.categoryId,
               notesExpanded: _notesExpanded,
               statsExpanded: _statsExpanded,
               onToggleNotes: () => setState(() => _notesExpanded = !_notesExpanded),
@@ -319,7 +317,6 @@ class _RowLabelValue extends StatelessWidget {
 class _TilesSection extends ConsumerWidget {
   const _TilesSection({
     required this.taskId,
-    required this.categoryId,
     required this.notesExpanded,
     required this.statsExpanded,
     required this.onToggleNotes,
@@ -327,7 +324,6 @@ class _TilesSection extends ConsumerWidget {
   });
 
   final String taskId;
-  final String? categoryId;
   final bool notesExpanded;
   final bool statsExpanded;
   final VoidCallback onToggleNotes;
@@ -370,7 +366,7 @@ class _TilesSection extends ConsumerWidget {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
           child: statsExpanded
-              ? _StatsExpandedContent(taskId: taskId, categoryId: categoryId)
+              ? _StatsExpandedContent(taskId: taskId)
               : const SizedBox.shrink(),
         ),
       ],
@@ -619,45 +615,78 @@ class _AddNoteDialogContentState extends State<_AddNoteDialogContent> {
   }
 }
 
+/// Sekcja „Statystyki” w TaskDetails: tylko dane TEGO zadania (Status + Notatki z sesji).
 class _StatsExpandedContent extends ConsumerWidget {
-  const _StatsExpandedContent({
-    required this.taskId,
-    required this.categoryId,
-  });
+  const _StatsExpandedContent({required this.taskId});
 
   final String taskId;
-  final String? categoryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Jeśli zadanie nie ma kategorii, pokaż komunikat
-    if (categoryId == null) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.25),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
-          ),
-        ),
-        child: Text(
-          'Zadanie nie ma przypisanej kategorii. Statystyki są dostępne tylko dla zadań z kategorią.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
-              ),
-        ),
-      );
-    }
+    final sessionsDao = ref.read(sessionsDaoProvider);
+    final sessionsStream = sessionsDao.watchSessionsByTaskId(taskId);
 
-    // Pobierz kolor kategorii
-    final category = ref.watch(categoryByIdProvider(categoryId!));
-    final categoryColorHex = category?.colorHex;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
+        ),
+      ),
+      child: StreamBuilder<List<SessionRow>>(
+        stream: sessionsStream,
+        builder: (context, snapshot) {
+          final sessions = snapshot.data ?? [];
+          final completed = sessions.where((s) => s.endAt != null).toList();
+          final statusText = completed.isEmpty
+              ? 'Brak ukończonych sesji'
+              : (completed.length == 1 ? '1 sesja ukończona' : '${completed.length} sesje ukończone');
+          final notesFromSessions = sessions
+              .where((s) => s.note != null && s.note!.trim().isNotEmpty)
+              .map((s) => (timestampMs: s.startAt, content: s.note!))
+              .toList();
 
-    return CategoryStatsPanel(
-      categoryId: categoryId!,
-      categoryColorHex: categoryColorHex,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _RowLabelValue(label: 'Status', value: statusText),
+              if (notesFromSessions.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Notatki z sesji',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...notesFromSessions.map((n) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateTimeUtils.formatTaskDateTimeFromEpochMs(n.timestampMs),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            n.content,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }

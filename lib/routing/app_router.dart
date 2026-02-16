@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../features/calendar/presentation/calendar_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/shell/presentation/shell_page.dart';
+import '../features/statistics/domain/models/statistics_models.dart';
+import '../features/statistics/presentation/category_stats_screen.dart';
 import '../features/tasks/presentation/tasks_list_page.dart';
 import '../features/timer/presentation/name_task_screen.dart';
 import '../features/timer/presentation/timer_page.dart';
@@ -28,6 +30,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/tasks',
             name: AppRoute.tasks.name,
             builder: (context, state) => const TasksListPage(),
+            routes: [
+              GoRoute(
+                path: 'category-stats',
+                name: 'categoryStats',
+                builder: (context, state) {
+                  final args = CategoryStatsScreenArgs.fromExtra(state.extra);
+                  if (args == null) {
+                    return const Scaffold(
+                      body: Center(child: Text('Brak parametrów kategorii')),
+                    );
+                  }
+                  return CategoryStatsScreen(args: args);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: '/timer',

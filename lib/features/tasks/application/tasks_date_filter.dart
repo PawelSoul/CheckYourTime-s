@@ -60,4 +60,39 @@ class TasksDateFilterState {
         return year != null && dt.year == year;
     }
   }
+
+  /// Zwraca zakres [fromMs, toMs] (Unix epoch ms) dla tego filtra.
+  /// [toMs] jest exclusive (koniec zakresu + 1 ms).
+  ({int fromMs, int toMs}) get timeRangeMs {
+    final now = DateTime.now();
+    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
+    switch (kind) {
+      case TasksDateFilterKind.all:
+        return (fromMs: 0, toMs: todayEnd.millisecondsSinceEpoch + 1);
+      case TasksDateFilterKind.today:
+        final start = DateTime(now.year, now.month, now.day);
+        return (fromMs: start.millisecondsSinceEpoch, toMs: todayEnd.millisecondsSinceEpoch + 1);
+      case TasksDateFilterKind.last7:
+        final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+        return (fromMs: start.millisecondsSinceEpoch, toMs: todayEnd.millisecondsSinceEpoch + 1);
+      case TasksDateFilterKind.last30:
+        final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 29));
+        return (fromMs: start.millisecondsSinceEpoch, toMs: todayEnd.millisecondsSinceEpoch + 1);
+      case TasksDateFilterKind.month:
+        if (year != null && month != null) {
+          final start = DateTime(year!, month!, 1);
+          final end = DateTime(year!, month! + 1, 0, 23, 59, 59, 999);
+          return (fromMs: start.millisecondsSinceEpoch, toMs: end.millisecondsSinceEpoch + 1);
+        }
+        return (fromMs: 0, toMs: todayEnd.millisecondsSinceEpoch + 1);
+      case TasksDateFilterKind.year:
+        if (year != null) {
+          final start = DateTime(year!, 1, 1);
+          final end = DateTime(year!, 12, 31, 23, 59, 59, 999);
+          return (fromMs: start.millisecondsSinceEpoch, toMs: end.millisecondsSinceEpoch + 1);
+        }
+        return (fromMs: 0, toMs: todayEnd.millisecondsSinceEpoch + 1);
+    }
+  }
 }

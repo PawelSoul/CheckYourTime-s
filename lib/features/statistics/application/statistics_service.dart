@@ -18,6 +18,25 @@ class StatisticsService {
   final TasksDao _tasksDao;
   final CategoriesDao _categoriesDao;
 
+  /// Łączny czas (sekundy) completed sesji kategorii w zakresie [fromMs, toMs).
+  Future<int> getCategoryTotalTimeInRange(
+    String categoryId,
+    int fromMs,
+    int toMs,
+  ) async {
+    final sessions = await _sessionsDao.getSessionsWithTasksInRange(
+      fromMs: fromMs,
+      toMs: toMs,
+    );
+    final filtered = sessions
+        .where((swt) => swt.task.categoryId == categoryId)
+        .toList();
+    return filtered.fold<int>(
+      0,
+      (sum, swt) => sum + (swt.session.durationSec as int),
+    );
+  }
+
   /// Pobiera wszystkie zakończone sesje dla kategorii w zakresie.
   Future<List<SessionWithTask>> _getCompletedSessionsForCategory(
     String categoryId,

@@ -53,7 +53,7 @@ class _CategoryStatsPanelState extends ConsumerState<CategoryStatsPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Przełącznik zakresu
-          _RangeSelector(
+          RangeSelector(
             selectedRange: _selectedRange,
             onRangeChanged: (range) => setState(() => _selectedRange = range),
           ),
@@ -62,9 +62,9 @@ class _CategoryStatsPanelState extends ConsumerState<CategoryStatsPanel> {
           statsAsync.when(
             data: (stats) {
               if (stats == null) {
-                return _EmptyState(message: 'Brak ukończonych sesji w tym zakresie');
+                return EmptyState(message: 'Brak ukończonych sesji w tym zakresie');
               }
-              return _StatsContent(
+                return StatsContent(
                 stats: stats,
                 categoryColor: categoryColor,
                 settings: settings,
@@ -77,7 +77,7 @@ class _CategoryStatsPanelState extends ConsumerState<CategoryStatsPanel> {
                 child: CircularProgressIndicator(),
               ),
             ),
-            error: (err, stack) => _EmptyState(
+              error: (err, stack) => EmptyState(
               message: 'Błąd ładowania statystyk: ${err.toString()}',
             ),
           ),
@@ -87,8 +87,9 @@ class _CategoryStatsPanelState extends ConsumerState<CategoryStatsPanel> {
   }
 }
 
-class _RangeSelector extends StatelessWidget {
-  const _RangeSelector({
+/// Przełącznik zakresu Wszystkie / Ten miesiąc (do ponownego użycia na ekranie statystyk).
+class RangeSelector extends StatelessWidget {
+  const RangeSelector({
     required this.selectedRange,
     required this.onRangeChanged,
   });
@@ -119,8 +120,9 @@ class _RangeSelector extends StatelessWidget {
   }
 }
 
-class _StatsContent extends ConsumerWidget {
-  const _StatsContent({
+/// Zawartość kart statystyk (do ponownego użycia na ekranie statystyk).
+class StatsContent extends ConsumerWidget {
+  const StatsContent({
     required this.stats,
     required this.categoryColor,
     required this.settings,
@@ -158,7 +160,7 @@ class _StatsContent extends ConsumerWidget {
 
     if (summaryWidgets.isNotEmpty) {
       widgets.add(
-        _SectionHeader(title: 'Podsumowanie'),
+        SectionHeader(title: 'Podsumowanie'),
       );
       widgets.addAll(summaryWidgets);
       widgets.add(const SizedBox(height: 16));
@@ -184,7 +186,7 @@ class _StatsContent extends ConsumerWidget {
     }
 
     if (chartWidgets.isNotEmpty) {
-      widgets.add(_SectionHeader(title: 'Wykresy'));
+      widgets.add(SectionHeader(title: 'Wykresy'));
       widgets.addAll(chartWidgets);
       widgets.add(const SizedBox(height: 16));
     }
@@ -214,14 +216,14 @@ class _StatsContent extends ConsumerWidget {
     }
 
     if (patternWidgets.isNotEmpty) {
-      widgets.add(_SectionHeader(title: 'Wzorce'));
+      widgets.add(SectionHeader(title: 'Wzorce'));
       widgets.addAll(patternWidgets);
       widgets.add(const SizedBox(height: 16));
     }
 
     // Sekcja: Ranking
     if (settings.isEnabled(StatsWidgetKey.categoryRanking)) {
-      widgets.add(_SectionHeader(title: 'Ranking'));
+      widgets.add(SectionHeader(title: 'Ranking'));
       widgets.add(
         CategoryRankingCard(
           categoryId: stats.categoryId,
@@ -231,7 +233,7 @@ class _StatsContent extends ConsumerWidget {
     }
 
     if (widgets.isEmpty) {
-      return _EmptyState(message: 'Wszystkie statystyki są wyłączone w ustawieniach');
+      return EmptyState(message: 'Wszystkie statystyki są wyłączone w ustawieniach');
     }
 
     return Column(
@@ -241,8 +243,8 @@ class _StatsContent extends ConsumerWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+class SectionHeader extends StatelessWidget {
+  const SectionHeader({required this.title});
 
   final String title;
 
@@ -261,8 +263,8 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.message});
+class EmptyState extends StatelessWidget {
+  const EmptyState({required this.message});
 
   final String message;
 
