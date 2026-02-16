@@ -23,6 +23,11 @@ class TimerPage extends ConsumerStatefulWidget {
 
 class _TimerPageState extends ConsumerState<TimerPage> {
   final GlobalKey<TimerControlLayerState> _controlLayerKey = GlobalKey();
+  bool _controlsVisible = true;
+
+  void _wakeControls() {
+    _controlLayerKey.currentState?.showControls();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,83 +49,96 @@ class _TimerPageState extends ConsumerState<TimerPage> {
         title: const Text('Timer'),
       ),
       body: SafeArea(
-        child: GestureDetector(
-          onTap: () => _controlLayerKey.currentState?.showControls(),
-          behavior: HitTestBehavior.opaque,
-          child: Column(
-            children: [
-              const AlarmCountdownBanner(),
-              if (viewSettings.progressBarVisible) ...[
-                const SizedBox(height: 12),
-                SegmentedHourProgressBar(
-                  elapsed: state.elapsed,
-                  categoryColorHex: categoryColorHex,
-                ),
-              ],
-              const SizedBox(height: 16),
-              viewSettings.viewMode == TimerViewMode.analogPremium
-                  ? PremiumAnalogClock(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Główna zawartość – tap gdziekolwiek budzi kontrolki
+            GestureDetector(
+              onTap: _wakeControls,
+              behavior: HitTestBehavior.translucent,
+              child: Column(
+                children: [
+                  const AlarmCountdownBanner(),
+                  if (viewSettings.progressBarVisible) ...[
+                    const SizedBox(height: 12),
+                    SegmentedHourProgressBar(
                       elapsed: state.elapsed,
                       categoryColorHex: categoryColorHex,
-                      progressRingVisible: viewSettings.premiumProgressRingVisible,
-                      minuteHandVisible: viewSettings.analogMinuteHandVisible,
-                      hourHandVisible: viewSettings.analogHourHandVisible,
-                    )
-                  : viewSettings.viewMode == TimerViewMode.analogClassic
-                      ? AnalogStopwatchView(elapsed: state.elapsed)
-                      : TimerClock(
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  viewSettings.viewMode == TimerViewMode.analogPremium
+                      ? PremiumAnalogClock(
                           elapsed: state.elapsed,
-                          showMilliseconds: viewSettings.digitalMillisecondsVisible,
-                        ),
-              if (state.activeCategoryId != null) ...[
-                const SizedBox(height: 12),
-                CategoryChip(
-                  label: categoryName,
-                  colorHex: categoryColorHex,
-                ),
-              ],
-              const Spacer(),
-              Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
+                          categoryColorHex: categoryColorHex,
+                          progressRingVisible: viewSettings.premiumProgressRingVisible,
+                          minuteHandVisible: viewSettings.analogMinuteHandVisible,
+                          hourHandVisible: viewSettings.analogHourHandVisible,
+                        )
+                      : viewSettings.viewMode == TimerViewMode.analogClassic
+                          ? AnalogStopwatchView(elapsed: state.elapsed)
+                          : TimerClock(
+                              elapsed: state.elapsed,
+                              showMilliseconds: viewSettings.digitalMillisecondsVisible,
+                            ),
+                  if (state.activeCategoryId != null) ...[
+                    const SizedBox(height: 12),
+                    CategoryChip(
+                      label: categoryName,
+                      colorHex: categoryColorHex,
+                    ),
+                  ],
+                  const Spacer(),
                   if (viewSettings.glowVisible)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: 110,
-                      child: TimerGlow(
-                        isIdle: isIdle,
-                        categoryColorHex: categoryColorHex,
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 0),
+                      child: SizedBox(
+                        height: 110,
+                        child: TimerGlow(
+                          isIdle: isIdle,
+                          categoryColorHex: categoryColorHex,
+                        ),
                       ),
                     ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 56),
-                        child: TimerControlLayer(
-                          key: _controlLayerKey,
-                          isIdle: isIdle,
-                          isRunning: isRunning,
-                          isPaused: isPaused,
-                          categoryColorHex: categoryColorHex,
-                          categoryName: categoryName,
-                          onStart: () => showStartTaskSheet(context, ref),
-                          onPause: () => controller.pause(),
-                          onResume: () => controller.resume(),
-                          onStop: () => _onStop(context, controller),
-                          onTapScreen: () => _controlLayerKey.currentState?.showControls(),
-                          activeSessionId: state.activeSessionId,
-                          activeTaskId: state.activeTaskId,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            // Kontrolki na dole (IgnorePointer gdy ukryte – w TimerControlLayer)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 56),
+                child: TimerControlLayer(
+                  key: _controlLayerKey,
+                  isIdle: isIdle,
+                  isRunning: isRunning,
+                  isPaused: isPaused,
+                  categoryColorHex: categoryColorHex,
+                  categoryName: categoryName,
+                  onStart: () => showStartTaskSheet(context, ref),
+                  onPause: () => controller.pause(),
+                  onResume: () => controller.resume(),
+                  onStop: () => _onStop(context, controller),
+                  onTapScreen: _wakeControls,
+                  activeSessionId: state.activeSessionId,
+                  activeTaskId: state.activeTaskId,
+                  onVisibilityChanged: (visible) =>
+                      setState(() => _controlsVisible = visible),
+                ),
+              ),
+            ),
+            // Pełnoekranowy overlay gdy kontrolki ukryte – tylko budzi, nie przekazuje tapu
+            if (!_controlsVisible)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _wakeControls,
+                  child: const ColoredBox(color: Colors.transparent),
+                ),
+              ),
+          ],
         ),
       ),
     );

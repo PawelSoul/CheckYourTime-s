@@ -22,10 +22,11 @@ class TimerControlLayer extends ConsumerStatefulWidget {
     required this.onStart,
     required this.onPause,
     required this.onResume,
-  required this.onStop,
-  required this.onTapScreen,
-  required this.activeSessionId,
-  required this.activeTaskId,
+    required this.onStop,
+    required this.onTapScreen,
+    required this.activeSessionId,
+    required this.activeTaskId,
+    this.onVisibilityChanged,
   });
 
   final bool isIdle;
@@ -40,6 +41,8 @@ class TimerControlLayer extends ConsumerStatefulWidget {
   final VoidCallback onTapScreen;
   final String? activeSessionId;
   final String? activeTaskId;
+  /// Wywoływane gdy widoczność kontrolek się zmienia (np. auto-hide lub wake).
+  final void Function(bool visible)? onVisibilityChanged;
 
   @override
   ConsumerState<TimerControlLayer> createState() => TimerControlLayerState();
@@ -62,12 +65,20 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
     _hideTimer?.cancel();
     _hideTimer = Timer(_autoHideDuration, () {
       if (!mounted) return;
-      setState(() => _controlsVisible = false);
+      setState(() {
+        _controlsVisible = false;
+        widget.onVisibilityChanged?.call(false);
+      });
     });
   }
 
   void _showControls() {
-    if (!_controlsVisible) setState(() => _controlsVisible = true);
+    if (!_controlsVisible) {
+      setState(() {
+        _controlsVisible = true;
+        widget.onVisibilityChanged?.call(true);
+      });
+    }
     _resetHideTimer();
   }
 
@@ -84,13 +95,15 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
   Widget build(BuildContext context) {
     final accentColor = CategoryColors.parse(widget.categoryColorHex);
 
-    return AnimatedOpacity(
-      opacity: _controlsVisible ? 1 : 0,
-      duration: _animationDuration,
-      child: AnimatedSlide(
-        offset: _controlsVisible ? Offset.zero : const Offset(0, 0.15),
+    return IgnorePointer(
+      ignoring: !_controlsVisible,
+      child: AnimatedOpacity(
+        opacity: _controlsVisible ? 1 : 0,
         duration: _animationDuration,
-        child: Column(
+        child: AnimatedSlide(
+          offset: _controlsVisible ? Offset.zero : const Offset(0, 0.15),
+          duration: _animationDuration,
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
@@ -160,6 +173,7 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
           ],
         ),
       ),
+    ),
     );
   }
 
