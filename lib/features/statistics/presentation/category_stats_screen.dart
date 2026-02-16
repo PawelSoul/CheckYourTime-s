@@ -40,8 +40,111 @@ class CategoryStatsScreenArgs {
   }
 }
 
+/// Wspólna treść statystyk kategorii (ekran lub bottom sheet).
+class CategoryStatsBody extends ConsumerStatefulWidget {
+  const CategoryStatsBody({
+    super.key,
+    required this.categoryId,
+    required this.categoryName,
+    this.categoryColorHex,
+    required this.initialRange,
+  });
+
+  final String categoryId;
+  final String categoryName;
+  final String? categoryColorHex;
+  final StatsRange initialRange;
+
+  @override
+  ConsumerState<CategoryStatsBody> createState() => _CategoryStatsBodyState();
+}
+
+class _CategoryStatsBodyState extends ConsumerState<CategoryStatsBody> {
+  late StatsRange _selectedRange;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRange = widget.initialRange;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statsAsync = ref.watch(
+      categoryStatsProvider(CategoryStatsParams(
+        categoryId: widget.categoryId,
+        range: _selectedRange,
+      )),
+    );
+    final settings = ref.watch(statsSettingsProvider);
+    final categoryColor = CategoryColors.parse(widget.categoryColorHex);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Nazwa kategorii + kolorowa kropka
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: categoryColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.categoryName,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                ),
+              ),
+            ),
+          ),
+          // Przełącznik zakresu
+          RangeSelector(
+            selectedRange: _selectedRange,
+            onRangeChanged: (range) => setState(() => _selectedRange = range),
+          ),
+          const SizedBox(height: 20),
+          // Zawartość statystyk
+          statsAsync.when(
+            data: (stats) {
+              if (stats == null) {
+                return EmptyState(message: 'Brak ukończonych sesji w tym zakresie');
+              }
+              return StatsContent(
+                stats: stats,
+                categoryColor: categoryColor,
+                settings: settings,
+                range: _selectedRange,
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => EmptyState(
+              message: 'Błąd ładowania statystyk: ${err.toString()}',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Ekran „Statystyki kategorii” – dashboard z wykresami i kartami (wg ustawień).
-class CategoryStatsScreen extends ConsumerStatefulWidget {
+class CategoryStatsScreen extends ConsumerWidget {
   const CategoryStatsScreen({
     super.key,
     required this.args,
@@ -50,94 +153,16 @@ class CategoryStatsScreen extends ConsumerStatefulWidget {
   final CategoryStatsScreenArgs args;
 
   @override
-  ConsumerState<CategoryStatsScreen> createState() => _CategoryStatsScreenState();
-}
-
-class _CategoryStatsScreenState extends ConsumerState<CategoryStatsScreen> {
-  late StatsRange _selectedRange;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedRange = widget.args.initialRange;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final statsAsync = ref.watch(
-      categoryStatsProvider(CategoryStatsParams(
-        categoryId: widget.args.categoryId,
-        range: _selectedRange,
-      )),
-    );
-    final settings = ref.watch(statsSettingsProvider);
-    final categoryColor = CategoryColors.parse(widget.args.categoryColorHex);
-
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statystyki kategorii'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Nazwa kategorii + kolorowa kropka
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: categoryColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.args.categoryName,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Przełącznik zakresu
-            RangeSelector(
-              selectedRange: _selectedRange,
-              onRangeChanged: (range) => setState(() => _selectedRange = range),
-            ),
-            const SizedBox(height: 20),
-            // Zawartość statystyk
-            statsAsync.when(
-              data: (stats) {
-                if (stats == null) {
-                  return EmptyState(message: 'Brak ukończonych sesji w tym zakresie');
-                }
-                return StatsContent(
-                  stats: stats,
-                  categoryColor: categoryColor,
-                  settings: settings,
-                  range: _selectedRange,
-                );
-              },
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (err, stack) => EmptyState(
-                message: 'Błąd ładowania statystyk: ${err.toString()}',
-              ),
-            ),
-          ],
-        ),
+      body: CategoryStatsBody(
+        categoryId: args.categoryId,
+        categoryName: args.categoryName,
+        categoryColorHex: args.categoryColorHex,
+        initialRange: args.initialRange,
       ),
     );
   }
