@@ -19,7 +19,7 @@ class TasksListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesAsync = ref.watch(categoriesStreamProvider);
+    final categoriesAsync = ref.watch(categoriesSortedByUsageProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
 
     return Scaffold(
@@ -36,7 +36,7 @@ class TasksListPage extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Poziomy scroll kategorii
+          // Poziomy scroll kategorii (od najczęściej do najmniej używanej)
           categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) {

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/db/daos/categories_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
+import '../../statistics/application/statistics_providers.dart';
+import '../../statistics/domain/models/statistics_models.dart';
 import 'application/tasks_date_filter.dart';
 import 'data/tasks_repository.dart';
 import 'data/tasks_repository_impl.dart';
@@ -24,6 +26,41 @@ final categoriesStreamProvider = StreamProvider<List<CategoryRow>>((ref) {
   final dao = ref.watch(categoriesDaoProvider);
   return dao.watchAll();
 });
+
+/// Lista kategorii posortowana od najczęściej używanej do najmniej (wg łącznego czasu sesji).
+final categoriesSortedByUsageProvider = Provider<AsyncValue<List<CategoryRow>>>((ref) {
+  final categoriesAsync = ref.watch(categoriesStreamProvider);
+  final rankingAsync = ref.watch(categoryRankingProvider(StatsRange.all));
+
+  return categoriesAsync.when(
+    data: (categories) {
+      return rankingAsync.when(
+        data: (ranking) => AsyncData(_sortCategoriesByRanking(categories, ranking)),
+        loading: () => AsyncData(categories),
+        error: (_, __) => AsyncData(categories),
+      );
+    },
+    loading: () => const AsyncLoading(),
+    error: (e, s) => AsyncError(e, s),
+  );
+});
+
+List<CategoryRow> _sortCategoriesByRanking(
+  List<CategoryRow> categories,
+  List<CategoryRankingEntry> ranking,
+) {
+  final byId = {for (final c in categories) c.id: c};
+  final result = <CategoryRow>[];
+  for (final entry in ranking) {
+    final cat = byId[entry.categoryId];
+    if (cat != null) {
+      result.add(cat);
+      byId.remove(entry.categoryId);
+    }
+  }
+  result.addAll(byId.values);
+  return result;
+}
 
 /// Kategoria po id (z aktualnej listy). Używane do koloru przy zadaniach.
 final categoryByIdProvider =
