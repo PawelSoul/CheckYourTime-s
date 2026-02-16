@@ -35,11 +35,14 @@ final categoryByIdProvider =
   }
 });
 
-/// Stream zadań dla danej kategorii (po categoryId).
+/// Stream zadań dla danej kategorii (po categoryId) - tylko ukończone (isArchived == true).
 final tasksByCategoryProvider =
     StreamProvider.autoDispose.family<List<TaskRow>, String>((ref, categoryId) {
   final dao = ref.watch(tasksDaoProvider);
-  return dao.watchByCategoryId(categoryId);
+  return dao.watchByCategoryId(categoryId, includeArchived: true).map((tasks) {
+    // Filtruj tylko ukończone zadania (isArchived == true)
+    return tasks.where((t) => t.isArchived).toList();
+  });
 });
 
 /// Wybrana kategoria (do pokazania tasków po prawej).

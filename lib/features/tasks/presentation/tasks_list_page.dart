@@ -8,8 +8,9 @@ import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
 import '../application/tasks_date_filter.dart';
 import '../tasks_providers.dart';
-import 'widgets/category_glass_tile.dart';
-import 'widgets/task_glass_card.dart';
+import 'widgets/category_chips_bar.dart';
+import 'widgets/minimal_task_card.dart';
+import 'widgets/simple_date_filter_bar.dart';
 
 class TasksListPage extends ConsumerWidget {
   const TasksListPage({super.key});
@@ -30,62 +31,44 @@ class TasksListPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: Row(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Lewa: lista kategorii
-          Material(
-            elevation: 0,
-            child: Container(
-              width: 200,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                border: Border(
-                  right: BorderSide(color: Theme.of(context).dividerColor),
-                ),
-              ),
-              child: categoriesAsync.when(
-                data: (categories) {
-                  if (categories.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          'Brak kategorii.\nPrzejdź do Stoper,\nżeby dodać nową i zacząć odliczanie.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      final isSelected = selectedCategory == category.id;
-                      return CategoryGlassTile(
-                        category: category,
-                        isSelected: isSelected,
-                        onTap: () =>
-                            ref.read(selectedCategoryProvider.notifier).state = category.id,
-                        onLongPress: () =>
-                            _showCategoryOptionsSheet(context, ref, category),
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('Błąd: $err', style: Theme.of(context).textTheme.bodySmall),
+          // Poziomy scroll kategorii
+          categoriesAsync.when(
+            data: (categories) {
+              if (categories.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Brak kategorii. Przejdź do Stoper, żeby dodać nową.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                ),
-              ),
+                );
+              }
+              return CategoryChipsBar(
+                categories: categories,
+                selectedCategoryId: selectedCategory,
+                onCategorySelected: (categoryId) =>
+                    ref.read(selectedCategoryProvider.notifier).state = categoryId,
+                onCategoryLongPress: (category) =>
+                    _showCategoryOptionsSheet(context, ref, category),
+              );
+            },
+            loading: () => const SizedBox(
+              height: 56,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (err, _) => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Błąd: $err', style: Theme.of(context).textTheme.bodySmall),
             ),
           ),
-          // Prawa: taski wybranej kategorii
+          // Pasek filtra okresu
+          if (selectedCategory != null && selectedCategory.isNotEmpty)
+            const SimpleDateFilterBar(),
+          // Lista zadań
           Expanded(
             child: selectedCategory == null || selectedCategory.isEmpty
                 ? Center(
@@ -99,19 +82,19 @@ class TasksListPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Kliknij kategorię po lewej,\nżeby zobaczyć listę zadań.',
+                          'Wybierz kategorię powyżej,\nżeby zobaczyć listę zadań.',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                       ],
                     ),
                   )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _TasksDateFilterBar(),
-                      Expanded(child: _TasksOfCategory(categoryId: selectedCategory)),
-                    ],
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _TasksOfCategory(
+                      key: ValueKey(selectedCategory),
+                      categoryId: selectedCategory,
+                    ),
                   ),
           ),
         ],
@@ -769,20 +752,30 @@ class _TasksOfCategory extends ConsumerWidget {
 
     return tasksAsync.when(
       data: (tasks) {
-        final filtered = tasks.where((t) => filter.contains(t.createdAt)).toList();
+        // Filtruj tylko ukończone zadania (isArchived == true) i według okresu
+        final filtered = tasks
+            .where((t) => t.isArchived && filter.contains(t.createdAt))
+            .toList();
+        
         if (filtered.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.task_alt, size: 48, color: Theme.of(context).colorScheme.outline),
-                const SizedBox(height: 12),
+                Icon(
+                  Icons.task_alt_outlined,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   tasks.isEmpty
-                      ? 'Brak zadań w tej kategorii.\nUruchom stoper i zatrzymaj go,\nżeby dodać pierwszy.'
-                      : 'Brak zadań w wybranym okresie.',
+                      ? 'Brak ukończonych zadań w tej kategorii.'
+                      : 'Brak ukończonych zadań w wybranym okresie.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      ),
                 ),
               ],
             ),
@@ -792,9 +785,9 @@ class _TasksOfCategory extends ConsumerWidget {
         final categoryColorHex = category?.colorHex;
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: filtered.length,
-          itemBuilder: (context, index) => TaskGlassCard(
+          itemBuilder: (context, index) => MinimalTaskCard(
             task: filtered[index],
             categoryColorHex: categoryColorHex,
           ),
@@ -802,7 +795,10 @@ class _TasksOfCategory extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
-        child: Text('Błąd: $err', style: Theme.of(context).textTheme.bodyMedium),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Błąd: $err', style: Theme.of(context).textTheme.bodyMedium),
+        ),
       ),
     );
   }
