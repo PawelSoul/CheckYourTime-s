@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/category_colors.dart';
+import '../../../core/constants/category_colors.dart';
 import '../application/statistics_providers.dart';
 import '../application/stats_settings_provider.dart';
 import '../domain/models/statistics_models.dart';
