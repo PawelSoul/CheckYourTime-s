@@ -50,7 +50,7 @@ class Last7DaysBarChart extends StatelessWidget {
                 ),
               ),
               InkWell(
-                onTap: () => _StatsCard.showExplanationDialog(context, 'last7DaysChart'),
+                onTap: () => showStatsExplanationDialog(context, 'last7DaysChart'),
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
