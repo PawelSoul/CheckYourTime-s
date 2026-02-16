@@ -184,7 +184,7 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
   }
 
   /// Stream zadań z zakończonymi sesjami w kategorii (z joinem).
-  Stream<List<TaskRow>> watchTasksWithCompletedSessionsInCategory(String categoryId) {
+  Stream<List<TasksTableData>> watchTasksWithCompletedSessionsInCategory(String categoryId) {
     final q = select(sessionsTable).join([
       innerJoin(tasksTable, tasksTable.id.equalsExp(sessionsTable.taskId)),
     ])
@@ -192,18 +192,21 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
         tasksTable.categoryId.equals(categoryId) &
         sessionsTable.endAt.isNotNull(),
       )
-      ..orderBy([(t) => OrderingTerm(expression: tasksTable.createdAt, mode: OrderingMode.desc)]);
+      ..orderBy([OrderingTerm.desc(tasksTable.createdAt)]);
     
     return q.watch().map((rows) {
       // Zwróć unikalne zadania (po taskId)
-      final taskMap = <String, TaskRow>{};
+      final taskMap = <String, TasksTableData>{};
       for (final row in rows) {
         final task = row.readTable(tasksTable);
         if (!taskMap.containsKey(task.id)) {
           taskMap[task.id] = task;
         }
       }
-      return taskMap.values.toList();
+      // Sortuj po createdAt desc (najnowsze pierwsze)
+      final tasks = taskMap.values.toList();
+      tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return tasks;
     });
   }
 }

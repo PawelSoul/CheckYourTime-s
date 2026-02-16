@@ -43,7 +43,9 @@ final tasksByCategoryProvider =
   final sessionsDao = ref.watch(sessionsDaoProvider);
   
   // Użyj bezpośrednio metody z joinem, która zwraca zadania z zakończonymi sesjami
-  return sessionsDao.watchTasksWithCompletedSessionsInCategory(categoryId);
+  // TasksTableData jest tym samym co TaskRow (dzięki typedef w tasks_dao.dart)
+  return sessionsDao.watchTasksWithCompletedSessionsInCategory(categoryId)
+      .map((tasks) => List<TaskRow>.from(tasks));
 });
 
 /// Wybrana kategoria (do pokazania tasków po prawej).
