@@ -310,7 +310,7 @@ class _StatsCard extends StatelessWidget {
               ),
               if (explanationKey != null)
                 InkWell(
-                  onTap: () => showExplanationDialog(context, explanationKey!),
+                  onTap: () => _showExplanationDialog(context, explanationKey!),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
                     padding: const EdgeInsets.all(4),
@@ -345,7 +345,7 @@ class _StatsCard extends StatelessWidget {
     );
   }
 
-  static void showExplanationDialog(BuildContext context, String explanationKey) {
+  void _showExplanationDialog(BuildContext context, String explanationKey) {
     final explanation = StatsExplanations.get(explanationKey);
     if (explanation == null) return;
 
@@ -373,4 +373,34 @@ class _StatsCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Funkcja pomocnicza do pokazywania wyjaśnień statystyk.
+void showStatsExplanationDialog(BuildContext context, String explanationKey) {
+  final explanation = StatsExplanations.get(explanationKey);
+  if (explanation == null) return;
+
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 20,
+            color: Theme.of(ctx).colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('Wyjaśnienie')),
+        ],
+      ),
+      content: Text(explanation),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Rozumiem'),
+        ),
+      ],
+    ),
+  );
 }

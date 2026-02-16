@@ -4,7 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../domain/models/statistics_models.dart';
 import '../utils/stats_explanations.dart';
 import '../utils/stats_format_utils.dart';
-import 'stats_cards.dart';
+import 'stats_cards.dart' show showStatsExplanationDialog;
 
 /// Wykres słupkowy: Ostatnie 7 dni.
 class Last7DaysBarChart extends StatelessWidget {
@@ -233,7 +233,7 @@ class Trend30DaysLineChart extends StatelessWidget {
                 ),
               ),
               InkWell(
-                onTap: () => _StatsCard.showExplanationDialog(context, 'trend30Days'),
+                onTap: () => showStatsExplanationDialog(context, 'trend30Days'),
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
