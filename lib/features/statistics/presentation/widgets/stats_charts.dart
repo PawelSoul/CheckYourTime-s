@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import '../../domain/models/statistics_models.dart';
+import '../utils/stats_explanations.dart';
 import '../utils/stats_format_utils.dart';
+import 'stats_cards.dart';
 
 /// Wykres słupkowy: Ostatnie 7 dni.
 class Last7DaysBarChart extends StatelessWidget {
@@ -36,12 +38,30 @@ class Last7DaysBarChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Ostatnie 7 dni',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
-                  fontWeight: FontWeight.w500,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Ostatnie 7 dni',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
+              ),
+              InkWell(
+                onTap: () => _StatsCard.showExplanationDialog(context, 'last7DaysChart'),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -203,13 +223,28 @@ class Trend30DaysLineChart extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Trend 30 dni',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
-                      fontWeight: FontWeight.w500,
-                    ),
+              Expanded(
+                child: Text(
+                  'Trend 30 dni',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
               ),
+              InkWell(
+                onTap: () => _StatsCard.showExplanationDialog(context, 'trend30Days'),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(

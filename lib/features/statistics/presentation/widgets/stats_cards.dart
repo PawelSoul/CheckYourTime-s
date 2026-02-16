@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/statistics_providers.dart';
 import '../../domain/models/statistics_models.dart';
 import '../../domain/stats_widget_key.dart';
+import '../utils/stats_explanations.dart';
 import '../utils/stats_format_utils.dart';
 
 /// Karta: Łączny czas w kategorii.
@@ -17,6 +18,7 @@ class TotalTimeCard extends StatelessWidget {
     return _StatsCard(
       title: 'Łączny czas',
       value: StatsFormatUtils.formatTotalTime(totalTimeSeconds),
+      explanationKey: 'totalTime',
     );
   }
 }
@@ -35,6 +37,7 @@ class AverageSessionDurationCard extends StatelessWidget {
     return _StatsCard(
       title: 'Średnia długość sesji',
       value: StatsFormatUtils.formatDuration(averageDurationSeconds.round()),
+      explanationKey: 'averageSessionDuration',
     );
   }
 }
@@ -55,6 +58,7 @@ class ShareVsAverageCard extends StatelessWidget {
       title: 'Porównanie do średniej',
       value: '${shareVsAverage.categorySharePercent.toStringAsFixed(1)}% całkowitego czasu',
       subtitle: 'vs średnia na kategorię: $diffText',
+      explanationKey: 'shareVsAverage',
     );
   }
 }
@@ -70,6 +74,7 @@ class MostProductiveWeekdayCard extends StatelessWidget {
     return _StatsCard(
       title: 'Najbardziej produktywny dzień',
       value: StatsFormatUtils.formatWeekday(weekday),
+      explanationKey: 'mostProductiveWeekday',
     );
   }
 }
@@ -86,6 +91,7 @@ class StreakCard extends StatelessWidget {
       title: 'Streak',
       value: '$streak ${streak == 1 ? 'dzień' : 'dni'}',
       subtitle: 'Minimum 2 sesje i ≥10 min dziennie',
+      explanationKey: 'streak',
     );
   }
 }
@@ -109,6 +115,7 @@ class PeakHourCard extends StatelessWidget {
       title: 'Najczęstsza godzina pracy',
       value: peakHourRange,
       subtitle: 'Histogram aktywności',
+      explanationKey: 'peakHour',
       customContent: Padding(
         padding: const EdgeInsets.only(top: 12),
         child: Row(
@@ -184,6 +191,7 @@ class CategoryRankingCard extends ConsumerWidget {
           value: currentCategory != null
               ? 'Pozycja ${currentCategory.position} z ${ranking.length}'
               : 'Poza rankingiem',
+          explanationKey: 'categoryRanking',
           customContent: Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Column(
@@ -247,10 +255,12 @@ class CategoryRankingCard extends ConsumerWidget {
       loading: () => const _StatsCard(
         title: 'Ranking kategorii',
         value: 'Ładowanie...',
+        explanationKey: 'categoryRanking',
       ),
       error: (err, stack) => _StatsCard(
         title: 'Ranking kategorii',
         value: 'Błąd: ${err.toString()}',
+        explanationKey: 'categoryRanking',
       ),
     );
   }
@@ -263,12 +273,14 @@ class _StatsCard extends StatelessWidget {
     required this.value,
     this.subtitle,
     this.customContent,
+    this.explanationKey,
   });
 
   final String title;
   final String value;
   final String? subtitle;
   final Widget? customContent;
+  final String? explanationKey;
 
   @override
   Widget build(BuildContext context) {
@@ -285,12 +297,31 @@ class _StatsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
-                  fontWeight: FontWeight.w500,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
+              ),
+              if (explanationKey != null)
+                InkWell(
+                  onTap: () => showExplanationDialog(context, explanationKey!),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -309,6 +340,35 @@ class _StatsCard extends StatelessWidget {
             ),
           ],
           if (customContent != null) customContent!,
+        ],
+      ),
+    );
+  }
+
+  static void showExplanationDialog(BuildContext context, String explanationKey) {
+    final explanation = StatsExplanations.get(explanationKey);
+    if (explanation == null) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 20,
+              color: Theme.of(ctx).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Wyjaśnienie')),
+          ],
+        ),
+        content: Text(explanation),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Rozumiem'),
+          ),
         ],
       ),
     );

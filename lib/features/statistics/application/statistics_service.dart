@@ -259,15 +259,24 @@ class StatisticsService {
       endDate = sortedDays.first;
     }
 
+    // Streak zaczyna się od 1 dnia (jeśli jest przynajmniej jeden dzień spełniający warunki)
     int streak = 0;
     var current = endDate!;
-    while (validDays.contains(current)) {
-      streak++;
+    
+    // Sprawdź czy endDate jest w validDays - jeśli tak, streak zaczyna się od 1
+    if (validDays.contains(current)) {
+      streak = 1;
       current = current.subtract(const Duration(days: 1));
-      // Dla "Ten miesiąc" - nie wychodź poza miesiąc
-      if (range == StatsRange.thisMonth &&
-          current.month != endDate.month) {
-        break;
+      
+      // Kontynuuj liczenie wstecz
+      while (validDays.contains(current)) {
+        streak++;
+        current = current.subtract(const Duration(days: 1));
+        // Dla "Ten miesiąc" - nie wychodź poza miesiąc
+        if (range == StatsRange.thisMonth &&
+            current.month != endDate.month) {
+          break;
+        }
       }
     }
 
