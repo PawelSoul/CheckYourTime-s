@@ -6,6 +6,8 @@ import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../../calendar/application/calendar_providers.dart';
+import '../../statistics/application/stats_settings_provider.dart';
+import '../../statistics/domain/stats_widget_key.dart';
 import '../../timer/application/timer_view_settings.dart';
 import '../../tasks/tasks_providers.dart';
 
@@ -105,6 +107,30 @@ class SettingsPage extends ConsumerWidget {
                         groupValue: settings.analogHandsMode,
                         onTap: () => notifier.setAnalogHandsMode(AnalogHandsMode.three),
                         trailingType: TrailingType.radio,
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: _spacingBetweenCards),
+          Consumer(
+            builder: (context, ref, _) {
+              final statsSettings = ref.watch(statsSettingsProvider);
+              final statsNotifier = ref.read(statsSettingsProvider.notifier);
+              final keys = StatsWidgetKey.values;
+              return SettingsSectionCard(
+                title: 'Statystyki kategorii',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < keys.length; i++) ...[
+                      if (i > 0) _divider(context),
+                      _SettingsSwitchTile(
+                        title: keys[i].displayName,
+                        value: statsSettings.isEnabled(keys[i]),
+                        onChanged: (v) => statsNotifier.setWidgetEnabled(keys[i], v),
                       ),
                     ],
                   ],
