@@ -41,7 +41,8 @@ class AnalogStopwatchView extends ConsumerWidget {
             child: CustomPaint(
               painter: AnalogStopwatchPainter(
                 elapsed: elapsed,
-                handsMode: settings.analogHandsMode,
+                minuteHandVisible: settings.analogMinuteHandVisible,
+                hourHandVisible: settings.analogHourHandVisible,
                 numbersStyle: settings.analogNumbersStyle,
                 numbersVisible: settings.analogNumbersVisible,
                 textColor: textColor,

@@ -7,14 +7,16 @@ import '../../application/timer_view_settings.dart';
 class AnalogStopwatchPainter extends CustomPainter {
   AnalogStopwatchPainter({
     required this.elapsed,
-    required this.handsMode,
+    required this.minuteHandVisible,
+    required this.hourHandVisible,
     required this.numbersStyle,
     required this.numbersVisible,
     required this.textColor,
   });
 
   final Duration elapsed;
-  final AnalogHandsMode handsMode;
+  final bool minuteHandVisible;
+  final bool hourHandVisible;
   final AnalogNumbersStyle numbersStyle;
   final bool numbersVisible;
   final Color textColor;
@@ -99,7 +101,7 @@ class AnalogStopwatchPainter extends CustomPainter {
   void _drawHands(Canvas canvas, Offset center, double radius) {
     final elapsedMs = elapsed.inMilliseconds;
 
-    if (handsMode == AnalogHandsMode.three) {
+    if (hourHandVisible) {
       final hoursMs = elapsedMs % (12 * 3600 * 1000);
       final hoursAngle = (hoursMs / (12 * 3600 * 1000)) * _twoPi - math.pi / 2;
       _drawHand(
@@ -112,16 +114,18 @@ class AnalogStopwatchPainter extends CustomPainter {
       );
     }
 
-    final minutesMs = elapsedMs % (60 * 60 * 1000);
-    final minutesAngle = (minutesMs / (60 * 60 * 1000)) * _twoPi - math.pi / 2;
-    _drawHand(
-      canvas,
-      center,
-      radius * 0.65,
-      minutesAngle,
-      3,
-      Colors.white.withOpacity(0.85),
-    );
+    if (minuteHandVisible) {
+      final minutesMs = elapsedMs % (60 * 60 * 1000);
+      final minutesAngle = (minutesMs / (60 * 60 * 1000)) * _twoPi - math.pi / 2;
+      _drawHand(
+        canvas,
+        center,
+        radius * 0.65,
+        minutesAngle,
+        3,
+        Colors.white.withOpacity(0.85),
+      );
+    }
 
     final secondsMs = elapsedMs % (60 * 1000);
     final secondsAngle = (secondsMs / (60 * 1000)) * _twoPi - math.pi / 2;
@@ -168,7 +172,8 @@ class AnalogStopwatchPainter extends CustomPainter {
   @override
   bool shouldRepaint(AnalogStopwatchPainter oldDelegate) {
     return oldDelegate.elapsed != elapsed ||
-        oldDelegate.handsMode != handsMode ||
+        oldDelegate.minuteHandVisible != minuteHandVisible ||
+        oldDelegate.hourHandVisible != hourHandVisible ||
         oldDelegate.numbersStyle != numbersStyle ||
         oldDelegate.numbersVisible != numbersVisible ||
         oldDelegate.textColor != textColor;

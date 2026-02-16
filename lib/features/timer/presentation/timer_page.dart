@@ -63,11 +63,15 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                       elapsed: state.elapsed,
                       categoryColorHex: categoryColorHex,
                       progressRingVisible: viewSettings.premiumProgressRingVisible,
-                      minuteHandVisible: viewSettings.premiumMinuteHandVisible,
+                      minuteHandVisible: viewSettings.analogMinuteHandVisible,
+                      hourHandVisible: viewSettings.analogHourHandVisible,
                     )
                   : viewSettings.viewMode == TimerViewMode.analogClassic
                       ? AnalogStopwatchView(elapsed: state.elapsed)
-                      : TimerClock(elapsed: state.elapsed),
+                      : TimerClock(
+                          elapsed: state.elapsed,
+                          showMilliseconds: viewSettings.digitalMillisecondsVisible,
+                        ),
               if (state.activeCategoryId != null) ...[
                 const SizedBox(height: 12),
                 CategoryChip(

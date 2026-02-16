@@ -80,33 +80,33 @@ class SettingsPage extends ConsumerWidget {
                         value: settings.premiumProgressRingVisible,
                         onChanged: (v) => notifier.setPremiumProgressRingVisible(v),
                       ),
+                    ],
+                    if (settings.viewMode == TimerViewMode.analogClassic ||
+                        settings.viewMode == TimerViewMode.analogPremium) ...[
+                      const SizedBox(height: 12),
                       _divider(context),
                       _SettingsSwitchTile(
                         title: 'Wskazówka minut',
-                        subtitle: 'Wskazówka pokazująca upływające minuty (zegar premium)',
-                        value: settings.premiumMinuteHandVisible,
-                        onChanged: (v) => notifier.setPremiumMinuteHandVisible(v),
+                        subtitle: 'Pokazuj wskazówkę minutową',
+                        value: settings.analogMinuteHandVisible,
+                        onChanged: (v) => notifier.setAnalogMinuteHandVisible(v),
+                      ),
+                      _divider(context),
+                      _SettingsSwitchTile(
+                        title: 'Wskazówka godzin',
+                        subtitle: 'Pokazuj wskazówkę godzinową',
+                        value: settings.analogHourHandVisible,
+                        onChanged: (v) => notifier.setAnalogHourHandVisible(v),
                       ),
                     ],
-                    if (settings.viewMode == TimerViewMode.analogClassic) ...[
+                    if (settings.viewMode == TimerViewMode.digital) ...[
                       const SizedBox(height: 12),
                       _divider(context),
-                      SettingsOptionTile<AnalogHandsMode>(
-                        title: '2 (min + sek)',
-                        subtitle: 'Tylko minutowa i sekundowa',
-                        value: AnalogHandsMode.two,
-                        groupValue: settings.analogHandsMode,
-                        onTap: () => notifier.setAnalogHandsMode(AnalogHandsMode.two),
-                        trailingType: TrailingType.radio,
-                      ),
-                      _divider(context),
-                      SettingsOptionTile<AnalogHandsMode>(
-                        title: '3 (godz + min + sek)',
-                        subtitle: 'Godzinowa, minutowa i sekundowa',
-                        value: AnalogHandsMode.three,
-                        groupValue: settings.analogHandsMode,
-                        onTap: () => notifier.setAnalogHandsMode(AnalogHandsMode.three),
-                        trailingType: TrailingType.radio,
+                      _SettingsSwitchTile(
+                        title: 'Liczby milisekund',
+                        subtitle: 'Pokazuj milisekundy na zegarze cyfrowym',
+                        value: settings.digitalMillisecondsVisible,
+                        onChanged: (v) => notifier.setDigitalMillisecondsVisible(v),
                       ),
                     ],
                   ],

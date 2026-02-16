@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 
 class TimerClock extends StatelessWidget {
-  final Duration elapsed;
-
   const TimerClock({
     super.key,
     required this.elapsed,
+    this.showMilliseconds = false,
   });
 
+  final Duration elapsed;
+  final bool showMilliseconds;
+
   String _two(int n) => n.toString().padLeft(2, '0');
+  String _three(int n) => n.toString().padLeft(3, '0');
 
   String _format(Duration d) {
     final hours = d.inHours;
     final minutes = d.inMinutes.remainder(60);
     final seconds = d.inSeconds.remainder(60);
-    if (hours > 0) {
-      return '${_two(hours)}:${_two(minutes)}:${_two(seconds)}';
+    final millis = d.inMilliseconds % 1000;
+    final time = hours > 0
+        ? '${_two(hours)}:${_two(minutes)}:${_two(seconds)}'
+        : '${_two(minutes)}:${_two(seconds)}';
+    if (showMilliseconds) {
+      return '$time.${_three(millis)}';
     }
-    return '${_two(minutes)}:${_two(seconds)}';
+    return time;
   }
 
   @override
