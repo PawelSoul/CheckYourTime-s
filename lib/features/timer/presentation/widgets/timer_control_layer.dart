@@ -270,7 +270,7 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
   }
 }
 
-/// Dialog ustawiania czasu – gdy użytkownik zapomniał włączyć stoper (np. ustaw 30 min).
+/// Dialog ustawiania czasu: godzina rozpoczęcia ↔ minuty (obustronna synchronizacja).
 class _EditTimeDialog extends StatefulWidget {
   const _EditTimeDialog({required this.initialMinutes});
 
@@ -281,75 +281,130 @@ class _EditTimeDialog extends StatefulWidget {
 }
 
 class _EditTimeDialogState extends State<_EditTimeDialog> {
-  static const List<int> _presetMinutes = [15, 30, 45, 60, 90, 120];
-  late int _selectedMinutes;
-  late final TextEditingController _customController;
+  late final TextEditingController _minutesController;
+  DateTime? _startTime; // godzina rozpoczęcia (jeśli wybrana z pickera)
 
   @override
   void initState() {
     super.initState();
-    _selectedMinutes = widget.initialMinutes > 0 ? widget.initialMinutes : 30;
-    _customController = TextEditingController(text: _selectedMinutes.toString());
+    final mins = widget.initialMinutes > 0 ? widget.initialMinutes : 30;
+    _minutesController = TextEditingController(text: mins.toString());
+    _startTime = DateTime.now().subtract(Duration(minutes: mins));
   }
 
   @override
   void dispose() {
-    _customController.dispose();
+    _minutesController.dispose();
     super.dispose();
   }
 
+  /// Minuty wyliczone z pola tekstowego (gdy użytkownik wpisuje minuty).
+  int get _minutesFromField {
+    final n = int.tryParse(_minutesController.text);
+    return (n != null && n > 0) ? n : 0;
+  }
+
+  /// Aktualny „moment rozpoczęcia”: albo _startTime (z pickera), albo now - minuty z pola.
+  DateTime get _computedStart {
+    if (_startTime != null) return _startTime!;
+    return DateTime.now().subtract(Duration(minutes: _minutesFromField));
+  }
+
+  /// Minuty „jak dawno temu” – z godziny rozpoczęcia lub z pola.
   int get _effectiveMinutes {
-    final n = int.tryParse(_customController.text);
-    return (n != null && n > 0) ? n : _selectedMinutes;
+    if (_startTime != null) {
+      final diff = DateTime.now().difference(_startTime!);
+      return diff.inMinutes.clamp(1, 86400); // max ~1 dzień
+    }
+    return _minutesFromField;
+  }
+
+  void _syncFromMinutes() {
+    setState(() => _startTime = null); // przy wpisywaniu minut traktuj jako „z minut”
+  }
+
+  void _syncFromStartTime(DateTime start) {
+    setState(() {
+      _startTime = start;
+      final mins = DateTime.now().difference(start).inMinutes.clamp(1, 86400);
+      _minutesController.text = mins.toString();
+    });
+  }
+
+  Future<void> _pickStartTime(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = _computedStart;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: initial.hour, minute: initial.minute),
+    );
+    if (time == null || !mounted) return;
+    var start = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    if (start.isAfter(now)) start = start.subtract(const Duration(days: 1));
+    _syncFromStartTime(start);
   }
 
   @override
   Widget build(BuildContext context) {
+    final start = _computedStart;
+    final startStr =
+        '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+
     return AlertDialog(
       title: const Text('Ustaw czas'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Wybierz, od ilu minut ma liczyć stoper (np. zapomniałeś włączyć):',
-            style: TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final mins in _presetMinutes)
-                ChoiceChip(
-                  label: Text(mins < 60 ? '$mins min' : '${mins ~/ 60}h'),
-                  selected: _selectedMinutes == mins,
-                  onSelected: (s) {
-                    if (s) {
-                      setState(() {
-                        _selectedMinutes = mins;
-                        _customController.text = mins.toString();
-                      });
-                    }
-                  },
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _customController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Własna liczba minut',
-              border: OutlineInputBorder(),
-              hintText: 'np. 25',
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Minuty – ile minut temu rozpocząłeś (stoper będzie od tej wartości):',
+              style: TextStyle(fontSize: 13),
             ),
-            onChanged: (v) {
-              final n = int.tryParse(v);
-              if (n != null && n > 0) setState(() => _selectedMinutes = n);
-            },
-          ),
-        ],
+            const SizedBox(height: 8),
+            TextField(
+              controller: _minutesController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Minuty',
+                border: OutlineInputBorder(),
+                hintText: 'np. 45',
+                suffixText: 'min',
+              ),
+              onChanged: (_) => _syncFromMinutes(),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Rozpoczęcie: $startStr',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Albo wybierz godzinę rozpoczęcia – minuty ustawią się automatycznie:',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              title: const Text('Godzina rozpoczęcia'),
+              subtitle: Text(startStr),
+              trailing: const Icon(Icons.access_time),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Theme.of(context).dividerColor),
+              ),
+              onTap: () => _pickStartTime(context),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'To było ${_effectiveMinutes} min temu',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -357,9 +412,12 @@ class _EditTimeDialogState extends State<_EditTimeDialog> {
           child: const Text('Anuluj'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop(
-            Duration(minutes: _effectiveMinutes),
-          ),
+          onPressed: () {
+            final mins = _effectiveMinutes;
+            if (mins > 0) {
+              Navigator.of(context).pop(Duration(minutes: mins));
+            }
+          },
           child: const Text('Ustaw'),
         ),
       ],
