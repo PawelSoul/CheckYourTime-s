@@ -283,6 +283,8 @@ class _EditTimeDialog extends StatefulWidget {
 class _EditTimeDialogState extends State<_EditTimeDialog> {
   late final TextEditingController _minutesController;
   DateTime? _startTime; // godzina rozpoczęcia (jeśli wybrana z pickera)
+  bool _showMinutesHelp = false;
+  bool _showStartTimeHelp = false;
 
   @override
   void initState() {
@@ -357,11 +359,31 @@ class _EditTimeDialogState extends State<_EditTimeDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Minuty – ile minut temu rozpocząłeś (stoper będzie od tej wartości):',
-              style: TextStyle(fontSize: 13),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.info_outline, size: 22),
+                  onPressed: () =>
+                      setState(() => _showMinutesHelp = !_showMinutesHelp),
+                  tooltip: 'Pomoc',
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(40, 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+                if (_showMinutesHelp)
+                  Expanded(
+                    child: Text(
+                      'Minuty – ile minut temu rozpocząłeś (stoper będzie od tej wartości):',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
+            if (_showMinutesHelp) const SizedBox(height: 4),
             TextField(
               controller: _minutesController,
               keyboardType: TextInputType.number,
@@ -381,11 +403,31 @@ class _EditTimeDialogState extends State<_EditTimeDialog> {
                   ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Albo wybierz godzinę rozpoczęcia – minuty ustawią się automatycznie:',
-              style: TextStyle(fontSize: 13),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.info_outline, size: 22),
+                  onPressed: () =>
+                      setState(() => _showStartTimeHelp = !_showStartTimeHelp),
+                  tooltip: 'Pomoc',
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(40, 40),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+                if (_showStartTimeHelp)
+                  Expanded(
+                    child: Text(
+                      'Albo wybierz godzinę rozpoczęcia – minuty ustawią się automatycznie:',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
+            if (_showStartTimeHelp) const SizedBox(height: 4),
             ListTile(
               title: const Text('Godzina rozpoczęcia'),
               subtitle: Text(startStr),
