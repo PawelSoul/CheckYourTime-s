@@ -233,16 +233,20 @@ class CategoryRankingCard extends ConsumerWidget {
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                               ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Text(
-                        StatsFormatUtils.formatTotalTime(entry.totalTimeSeconds),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant
-                                  .withOpacity(0.7),
-                            ),
+                      Flexible(
+                        child: Text(
+                          StatsFormatUtils.formatTotalTime(entry.totalTimeSeconds),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withOpacity(0.7),
+                              ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

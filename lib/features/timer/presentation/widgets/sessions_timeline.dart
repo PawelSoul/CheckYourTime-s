@@ -115,15 +115,19 @@ class SessionsTimeline extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Row(
                 children: [
-                  Text(
-                    'Ostatnie sesje',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                  Expanded(
+                    child: Text(
+                      'Ostatnie sesje',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  const Spacer(),
-                  SegmentedButton<SessionsTimelineSort>(
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: SegmentedButton<SessionsTimelineSort>(
                     segments: const [
                       ButtonSegment<SessionsTimelineSort>(
                         value: SessionsTimelineSort.newestFirst,
@@ -154,6 +158,7 @@ class SessionsTimeline extends ConsumerWidget {
                       }),
                     ),
                   ),
+                ),
                 ],
               ),
             ),

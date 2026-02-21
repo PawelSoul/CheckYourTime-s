@@ -791,13 +791,15 @@ class _CategoryStatsButton extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     child: Row(
                       children: [
-                        Text(
-                          'Statystyki kategorii',
-                          style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                        Expanded(
+                          child: Text(
+                            'Statystyki kategorii',
+                            style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.close),
                           onPressed: () => Navigator.of(ctx).pop(),
