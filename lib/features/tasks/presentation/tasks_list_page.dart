@@ -175,8 +175,10 @@ class TasksListPage extends ConsumerWidget {
                           ),
                         ),
                         title: Text(category.name),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        trailing: Wrap(
+                          spacing: 0,
+                          runSpacing: 4,
+                          alignment: WrapAlignment.end,
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),

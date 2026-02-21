@@ -25,29 +25,31 @@ class SimpleDateFilterBar extends ConsumerWidget {
                 ),
           ),
           const SizedBox(width: 12),
-          SegmentedButton<TasksDateFilterKind>(
-            segments: const [
-              ButtonSegment(
-                value: TasksDateFilterKind.all,
-                label: Text('Wszystkie'),
-              ),
-              ButtonSegment(
-                value: TasksDateFilterKind.month,
-                label: Text('Ten miesiąc'),
-              ),
-            ],
-            selected: {isThisMonth ? TasksDateFilterKind.month : TasksDateFilterKind.all},
-            onSelectionChanged: (Set<TasksDateFilterKind> selection) {
-              if (selection.isNotEmpty) {
-                final kind = selection.first;
-                if (kind == TasksDateFilterKind.month) {
-                  ref.read(tasksDateFilterProvider.notifier).state =
-                      TasksDateFilterState.forMonth(now.year, now.month);
-                } else {
-                  ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.all;
+          Expanded(
+            child: SegmentedButton<TasksDateFilterKind>(
+              segments: const [
+                ButtonSegment(
+                  value: TasksDateFilterKind.all,
+                  label: Text('Wszystkie'),
+                ),
+                ButtonSegment(
+                  value: TasksDateFilterKind.month,
+                  label: Text('Ten miesiąc'),
+                ),
+              ],
+              selected: {isThisMonth ? TasksDateFilterKind.month : TasksDateFilterKind.all},
+              onSelectionChanged: (Set<TasksDateFilterKind> selection) {
+                if (selection.isNotEmpty) {
+                  final kind = selection.first;
+                  if (kind == TasksDateFilterKind.month) {
+                    ref.read(tasksDateFilterProvider.notifier).state =
+                        TasksDateFilterState.forMonth(now.year, now.month);
+                  } else {
+                    ref.read(tasksDateFilterProvider.notifier).state = TasksDateFilterState.all;
+                  }
                 }
-              }
-            },
+              },
+            ),
           ),
         ],
       ),
