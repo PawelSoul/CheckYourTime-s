@@ -148,6 +148,24 @@ class _TimerPageState extends ConsumerState<TimerPage> {
     BuildContext context,
     TimerController controller,
   ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Zatrzymać stoper?'),
+        content: const Text('Czy na pewno?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Tak'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted || confirmed != true) return;
     await controller.stop();
     if (!context.mounted) return;
     Future.microtask(() => controller.reset());
