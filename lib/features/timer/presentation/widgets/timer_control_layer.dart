@@ -348,111 +348,156 @@ class _EditTimeDialogState extends State<_EditTimeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final start = _computedStart;
     final startStr =
         '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
 
     return AlertDialog(
       title: const Text('Ustaw czas'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.info_outline, size: 22),
-                  onPressed: () =>
-                      setState(() => _showMinutesHelp = !_showMinutesHelp),
-                  tooltip: 'Pomoc',
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(40, 40),
-                    padding: EdgeInsets.zero,
+            // Sekcja: Minuty
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _SectionHeader(
+                    label: 'Minuty',
+                    onHelpTap: () =>
+                        setState(() => _showMinutesHelp = !_showMinutesHelp),
                   ),
-                ),
-                if (_showMinutesHelp)
-                  Expanded(
-                    child: Text(
+                  if (_showMinutesHelp) const SizedBox(height: 10),
+                  if (_showMinutesHelp)
+                    Text(
                       'Minuty – ile minut temu rozpocząłeś (stoper będzie od tej wartości):',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 13,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
+                  if (_showMinutesHelp) const SizedBox(height: 12),
+                  TextField(
+                    controller: _minutesController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Minuty',
+                      hintText: 'np. 45',
+                      suffixText: 'min',
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                    onChanged: (_) => _syncFromMinutes(),
                   ),
-              ],
-            ),
-            if (_showMinutesHelp) const SizedBox(height: 4),
-            TextField(
-              controller: _minutesController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Minuty',
-                border: OutlineInputBorder(),
-                hintText: 'np. 45',
-                suffixText: 'min',
+                  const SizedBox(height: 10),
+                  _InfoChip(
+                    icon: Icons.schedule,
+                    text: 'Rozpoczęcie: $startStr',
+                  ),
+                ],
               ),
-              onChanged: (_) => _syncFromMinutes(),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Rozpoczęcie: $startStr',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+            const SizedBox(height: 20),
+            // Sekcja: Godzina rozpoczęcia
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _SectionHeader(
+                    label: 'Godzina rozpoczęcia',
+                    onHelpTap: () =>
+                        setState(() => _showStartTimeHelp = !_showStartTimeHelp),
                   ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.info_outline, size: 22),
-                  onPressed: () =>
-                      setState(() => _showStartTimeHelp = !_showStartTimeHelp),
-                  tooltip: 'Pomoc',
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(40, 40),
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
-                if (_showStartTimeHelp)
-                  Expanded(
-                    child: Text(
+                  if (_showStartTimeHelp) const SizedBox(height: 10),
+                  if (_showStartTimeHelp)
+                    Text(
                       'Albo wybierz godzinę rozpoczęcia – minuty ustawią się automatycznie:',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 13,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (_showStartTimeHelp) const SizedBox(height: 12),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _pickStartTime(context),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withOpacity(0.8),
                           ),
+                          color: colorScheme.surfaceContainerHighest
+                              .withOpacity(0.5),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 28,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    startStr,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'To było ${_effectiveMinutes} min temu',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-              ],
-            ),
-            if (_showStartTimeHelp) const SizedBox(height: 4),
-            ListTile(
-              title: const Text('Godzina rozpoczęcia'),
-              subtitle: Text(startStr),
-              trailing: const Icon(Icons.access_time),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Theme.of(context).dividerColor),
+                ],
               ),
-              onTap: () => _pickStartTime(context),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'To było ${_effectiveMinutes} min temu',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
             ),
           ],
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Anuluj'),
         ),
+        const SizedBox(width: 8),
         FilledButton(
           onPressed: () {
             final mins = _effectiveMinutes;
@@ -463,6 +508,107 @@ class _EditTimeDialogState extends State<_EditTimeDialog> {
           child: const Text('Ustaw'),
         ),
       ],
+    );
+  }
+}
+
+/// Karta sekcji w dialogu – tło i zaokrąglenie.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Nagłówek sekcji z ikoną pomocy.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.label,
+    required this.onHelpTap,
+  });
+
+  final String label;
+  final VoidCallback onHelpTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const Spacer(),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onHelpTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                Icons.info_outline_rounded,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Mały chip z ikoną i tekstem (np. „Rozpoczęcie: 20:24”).
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
