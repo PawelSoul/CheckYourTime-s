@@ -95,7 +95,7 @@ class _CategoryHeader extends StatelessWidget {
   }
 }
 
-/// Lista sesji: [1] HH:mm – HH:mm, [2] …, z lekkim separatorem między wierszami.
+/// Lista sesji: [1] HH:mm – HH:mm, [2] …, lazy ListView.builder zamiast Column (mniej rebuildów przy długich listach).
 class _SessionList extends StatelessWidget {
   const _SessionList({required this.items});
 
@@ -108,20 +108,20 @@ class _SessionList extends StatelessWidget {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(height: _rowSpacing),
-          _SessionRow(
-            index: i + 1,
-            startAt: items[i].startAt,
-            endAt: items[i].endAt,
-            counterColor: muted,
-            theme: theme,
-          ),
-        ],
-      ],
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: _rowSpacing),
+      itemBuilder: (context, index) => _SessionRow(
+        index: index + 1,
+        startAt: items[index].startAt,
+        endAt: items[index].endAt,
+        counterColor: muted,
+        theme: theme,
+      ),
     );
   }
 }

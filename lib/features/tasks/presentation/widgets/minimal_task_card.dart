@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/category_colors.dart';
 import '../../../../core/utils/datetime_utils.dart';
-import '../../../../data/db/daos/sessions_dao.dart';
-import '../../../../data/db/daos/tasks_dao.dart';
-import '../../../../providers/app_db_provider.dart';
+import '../../tasks_providers.dart';
 import '../task_details_page.dart';
 
 /// Minimalistyczna karta zadania: tytuł + data + godziny rozpoczęcia/zakończenia.
+/// Używa taskSessionSummaryProvider zamiast StreamBuilder – jedna subskrypcja Riverpod, brak tworzenia streamu w build().
 class MinimalTaskCard extends ConsumerWidget {
   const MinimalTaskCard({
     super.key,
@@ -22,35 +21,13 @@ class MinimalTaskCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryColor = CategoryColors.parse(categoryColorHex ?? task.colorHex);
-    
-    // Pobierz sesje dla zadania, żeby obliczyć godzinę rozpoczęcia i zakończenia
-    final sessionsDao = ref.read(sessionsDaoProvider);
-    final sessionsStream = sessionsDao.watchSessionsByTaskId(task.id);
+    final summaryAsync = ref.watch(taskSessionSummaryProvider(task.id));
 
-    return StreamBuilder<List<SessionRow>>(
-      stream: sessionsStream,
-      builder: (context, snapshot) {
-        final sessions = snapshot.data ?? [];
-        
-        // Znajdź pierwszą i ostatnią sesję
-        SessionRow? firstSession;
-        SessionRow? lastSession;
-        if (sessions.isNotEmpty) {
-          sessions.sort((a, b) => a.startAt.compareTo(b.startAt));
-          firstSession = sessions.first;
-          final completedSessions = sessions.where((s) => s.endAt != null).toList();
-          if (completedSessions.isNotEmpty) {
-            completedSessions.sort((a, b) => (b.endAt ?? 0).compareTo(a.endAt ?? 0));
-            lastSession = completedSessions.first;
-          }
-        }
-
-        final startTime = firstSession != null
-            ? DateTimeUtils.formatTimeFromEpochMs(firstSession.startAt)
-            : DateTimeUtils.formatTimeFromEpochMs(task.createdAt);
-        final endTime = lastSession?.endAt != null
-            ? DateTimeUtils.formatTimeFromEpochMs(lastSession!.endAt!)
-            : null;
+    return summaryAsync.when(
+      data: (summary) {
+        final startTime = summary?.start ??
+            DateTimeUtils.formatTimeFromEpochMs(task.createdAt);
+        final endTime = summary?.end;
 
         return Material(
           color: Colors.transparent,
@@ -130,6 +107,64 @@ class MinimalTaskCard extends ConsumerWidget {
           ),
         );
       },
+      loading: () => Material(
+        color: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  task.name,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      error: (_, __) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openTaskDetails(context),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              task.name,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openTaskDetails(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => TaskDetailsPage(
+          task: task,
+          categoryColorHex: categoryColorHex,
+        ),
+      ),
     );
   }
 

@@ -3,12 +3,11 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String _taskNotesPrefsKey = 'task_notes_list';
+const String taskNotesPrefsKey = 'task_notes_list';
 
-/// Ładuje zapisane notatki z SharedPreferences (do użycia w main przed utworzeniem notifiera).
-Map<String, List<TaskNote>> loadTaskNotesFromPrefs(SharedPreferences prefs) {
+/// Parsuje JSON notatek w isolate (do użycia z compute() przy starcie).
+Map<String, List<TaskNote>> parseTaskNotesFromJson(String? json) {
   try {
-    final json = prefs.getString(_taskNotesPrefsKey);
     if (json == null || json.isEmpty) return {};
     final decoded = jsonDecode(json) as Map<String, dynamic>;
     final loaded = <String, List<TaskNote>>{};
@@ -22,6 +21,11 @@ Map<String, List<TaskNote>> loadTaskNotesFromPrefs(SharedPreferences prefs) {
   } catch (_) {
     return {};
   }
+}
+
+/// Ładuje zapisane notatki z SharedPreferences (do użycia w main przed utworzeniem notifiera).
+Map<String, List<TaskNote>> loadTaskNotesFromPrefs(SharedPreferences prefs) {
+  return parseTaskNotesFromJson(prefs.getString(taskNotesPrefsKey));
 }
 
 /// Jedna notatka powiązana z zadaniem (taskId).
@@ -124,7 +128,7 @@ class TaskNotesNotifier extends StateNotifier<Map<String, List<TaskNote>>> {
     for (final e in state.entries) {
       encoded[e.key] = e.value.map((n) => n.toJson()).toList();
     }
-    await _prefs.setString(_taskNotesPrefsKey, jsonEncode(encoded));
+    await _prefs.setString(taskNotesPrefsKey, jsonEncode(encoded));
   }
 
   void addNote(String taskId, String content) {
@@ -165,9 +169,9 @@ final taskNotesProvider =
   ),
 );
 
-/// Lista notatek dla danego zadania (z zapisanej listy).
+/// Lista notatek dla danego zadania – przebudowa tylko gdy zmieni się lista dla tego taskId.
 final taskNotesListProvider =
     Provider.family<List<TaskNote>, String>((ref, taskId) {
-  ref.watch(taskNotesProvider);
+  ref.watch(taskNotesProvider.select((m) => m[taskId]));
   return ref.read(taskNotesProvider.notifier).getNotes(taskId);
 });

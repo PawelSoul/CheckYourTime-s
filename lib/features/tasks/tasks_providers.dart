@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/datetime_utils.dart';
 import '../../../data/db/daos/categories_dao.dart';
+import '../../../data/db/daos/sessions_dao.dart';
 import '../../../data/db/daos/tasks_dao.dart';
 import '../../../providers/app_db_provider.dart';
 import '../statistics/application/statistics_providers.dart';
@@ -83,6 +85,32 @@ final tasksByCategoryProvider =
   // TasksTableData jest tym samym co TaskRow (dzięki typedef w tasks_dao.dart)
   return sessionsDao.watchTasksWithCompletedSessionsInCategory(categoryId)
       .map((tasks) => List<TaskRow>.from(tasks));
+});
+
+/// Podsumowanie sesji dla zadania (pierwsza/ostatnia godzina) – jedna subskrypcja Riverpod zamiast StreamBuilder w build().
+final taskSessionSummaryProvider = StreamProvider.autoDispose
+    .family<({String start, String? end})?, String>((ref, taskId) {
+  final dao = ref.watch(sessionsDaoProvider);
+  return dao.watchSessionsByTaskId(taskId).map((sessions) {
+    if (sessions.isEmpty) return null;
+    final sorted = List<SessionRow>.from(sessions)
+      ..sort((a, b) => a.startAt.compareTo(b.startAt));
+    final first = sorted.first;
+    final completed =
+        sorted.where((s) => s.endAt != null).toList();
+    if (completed.isEmpty) {
+      return (
+        start: DateTimeUtils.formatTimeFromEpochMs(first.startAt),
+        end: null,
+      );
+    }
+    completed.sort((a, b) => (b.endAt!).compareTo(a.endAt!));
+    final last = completed.first;
+    return (
+      start: DateTimeUtils.formatTimeFromEpochMs(first.startAt),
+      end: DateTimeUtils.formatTimeFromEpochMs(last.endAt!),
+    );
+  });
 });
 
 /// Wybrana kategoria (do pokazania tasków po prawej).

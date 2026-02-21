@@ -29,18 +29,21 @@ class _TimerPageState extends ConsumerState<TimerPage> {
     _controlLayerKey.currentState?.showControls();
   }
 
+  /// Meta bez elapsed – ogranicza przebudowy przy ticku (200 ms).
+  static (String? a, bool r, String? c, String? t) _meta(TimerState s) =>
+      (s.activeSessionId, s.isRunning, s.activeCategoryId, s.activeTaskId);
+
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(timerControllerProvider);
+    final meta = ref.watch(timerControllerProvider.select(_meta));
     final controller = ref.read(timerControllerProvider.notifier);
     final viewSettings = ref.watch(timerViewSettingsProvider);
-    final category = state.activeCategoryId != null
-        ? ref.watch(categoryByIdProvider(state.activeCategoryId!))
-        : null;
+    final category =
+        meta.$3 != null ? ref.watch(categoryByIdProvider(meta.$3!)) : null;
 
-    final isIdle = state.activeSessionId == null;
-    final isRunning = state.isRunning;
-    final isPaused = state.activeSessionId != null && !state.isRunning;
+    final isIdle = meta.$1 == null;
+    final isRunning = meta.$2;
+    final isPaused = meta.$1 != null && !meta.$2;
     final categoryName = category?.name ?? 'Brak kategorii';
     final categoryColorHex = category?.colorHex;
 
@@ -52,36 +55,50 @@ class _TimerPageState extends ConsumerState<TimerPage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Główna zawartość – tap gdziekolwiek budzi kontrolki
             GestureDetector(
               onTap: _wakeControls,
               behavior: HitTestBehavior.translucent,
               child: Column(
                 children: [
                   const AlarmCountdownBanner(),
-                  if (viewSettings.progressBarVisible) ...[
-                    const SizedBox(height: 12),
-                    SegmentedHourProgressBar(
-                      elapsed: state.elapsed,
-                      categoryColorHex: categoryColorHex,
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  viewSettings.viewMode == TimerViewMode.analogPremium
-                      ? PremiumAnalogClock(
-                          elapsed: state.elapsed,
-                          categoryColorHex: categoryColorHex,
-                          progressRingVisible: viewSettings.premiumProgressRingVisible,
-                          minuteHandVisible: viewSettings.analogMinuteHandVisible,
-                          hourHandVisible: viewSettings.analogHourHandVisible,
-                        )
-                      : viewSettings.viewMode == TimerViewMode.analogClassic
-                          ? AnalogStopwatchView(elapsed: state.elapsed)
-                          : TimerClock(
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final state = ref.watch(timerControllerProvider);
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (viewSettings.progressBarVisible) ...[
+                            const SizedBox(height: 12),
+                            SegmentedHourProgressBar(
                               elapsed: state.elapsed,
-                              showMilliseconds: viewSettings.digitalMillisecondsVisible,
+                              categoryColorHex: categoryColorHex,
                             ),
-                  if (state.activeCategoryId != null) ...[
+                          ],
+                          const SizedBox(height: 16),
+                          viewSettings.viewMode == TimerViewMode.analogPremium
+                              ? PremiumAnalogClock(
+                                  elapsed: state.elapsed,
+                                  categoryColorHex: categoryColorHex,
+                                  progressRingVisible:
+                                      viewSettings.premiumProgressRingVisible,
+                                  minuteHandVisible:
+                                      viewSettings.analogMinuteHandVisible,
+                                  hourHandVisible:
+                                      viewSettings.analogHourHandVisible,
+                                )
+                              : viewSettings.viewMode ==
+                                      TimerViewMode.analogClassic
+                                  ? AnalogStopwatchView(elapsed: state.elapsed)
+                                  : TimerClock(
+                                      elapsed: state.elapsed,
+                                      showMilliseconds: viewSettings
+                                          .digitalMillisecondsVisible,
+                                    ),
+                        ],
+                      );
+                    },
+                  ),
+                  if (meta.$3 != null) ...[
                     const SizedBox(height: 12),
                     CategoryChip(
                       label: categoryName,
@@ -103,29 +120,27 @@ class _TimerPageState extends ConsumerState<TimerPage> {
                 ],
               ),
             ),
-            // Kontrolki na dole (IgnorePointer gdy ukryte – w TimerControlLayer)
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 56),
-                child: TimerControlLayer(
-                  key: _controlLayerKey,
+                child: _TimerControlLayerWithElapsed(
+                  controlKey: _controlLayerKey,
                   isIdle: isIdle,
                   isRunning: isRunning,
                   isPaused: isPaused,
                   categoryColorHex: categoryColorHex,
                   categoryName: categoryName,
-                  currentElapsed: state.elapsed,
                   onStart: () => showStartTaskSheet(context, ref),
                   onPause: () => controller.pause(),
                   onResume: () => controller.resume(),
                   onStop: () => _onStop(context, controller),
                   onEditTime: (d) => controller.setElapsed(d),
                   onTapScreen: _wakeControls,
-                  activeSessionId: state.activeSessionId,
-                  activeTaskId: state.activeTaskId,
+                  activeSessionId: meta.$1,
+                  activeTaskId: meta.$4,
                   onVisibilityChanged: (visible) =>
                       setState(() => _controlsVisible = visible),
                 ),
@@ -176,5 +191,66 @@ class _TimerPageState extends ConsumerState<TimerPage> {
         const SnackBar(content: Text('Sesja zapisana')),
       );
     }
+  }
+}
+
+/// Kontrolki z currentElapsed z wewnętrznego watch – tylko ten widget rebuilduje przy ticku.
+class _TimerControlLayerWithElapsed extends ConsumerWidget {
+  const _TimerControlLayerWithElapsed({
+    required this.controlKey,
+    required this.isIdle,
+    required this.isRunning,
+    required this.isPaused,
+    required this.categoryColorHex,
+    required this.categoryName,
+    required this.onStart,
+    required this.onPause,
+    required this.onResume,
+    required this.onStop,
+    this.onEditTime,
+    required this.onTapScreen,
+    required this.activeSessionId,
+    required this.activeTaskId,
+    this.onVisibilityChanged,
+  });
+
+  final GlobalKey<TimerControlLayerState> controlKey;
+  final bool isIdle;
+  final bool isRunning;
+  final bool isPaused;
+  final String? categoryColorHex;
+  final String categoryName;
+  final VoidCallback onStart;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onStop;
+  final void Function(Duration)? onEditTime;
+  final VoidCallback onTapScreen;
+  final String? activeSessionId;
+  final String? activeTaskId;
+  final void Function(bool)? onVisibilityChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentElapsed =
+        ref.watch(timerControllerProvider.select((s) => s.elapsed));
+    return TimerControlLayer(
+      key: controlKey,
+      isIdle: isIdle,
+      isRunning: isRunning,
+      isPaused: isPaused,
+      categoryColorHex: categoryColorHex,
+      categoryName: categoryName,
+      currentElapsed: currentElapsed,
+      onStart: onStart,
+      onPause: onPause,
+      onResume: onResume,
+      onStop: onStop,
+      onEditTime: onEditTime,
+      onTapScreen: onTapScreen,
+      activeSessionId: activeSessionId,
+      activeTaskId: activeTaskId,
+      onVisibilityChanged: onVisibilityChanged,
+    );
   }
 }

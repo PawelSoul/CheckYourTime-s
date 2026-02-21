@@ -873,6 +873,7 @@ class _TasksOfCategory extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: filtered.length,
           itemBuilder: (context, index) => MinimalTaskCard(
+            key: ValueKey(filtered[index].id),
             task: filtered[index],
             categoryColorHex: categoryColorHex,
           ),
