@@ -111,8 +111,10 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
           child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 _QuickActionChip(
                   label: 'Alarm',
@@ -122,7 +124,6 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                     _showAlarmDialog(context);
                   },
                 ),
-                const SizedBox(width: 12),
                 _QuickActionChip(
                   label: 'Notatka',
                   icon: Icons.note_add_outlined,
@@ -134,8 +135,7 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                         },
                   tooltip: widget.isIdle ? 'Uruchom stoper, aby dodać notatkę' : null,
                 ),
-                if (!widget.isIdle && widget.onEditTime != null) ...[
-                  const SizedBox(width: 12),
+                if (!widget.isIdle && widget.onEditTime != null)
                   _QuickActionChip(
                     label: 'Edytuj czas',
                     icon: Icons.schedule_outlined,
@@ -145,7 +145,6 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                     },
                     tooltip: 'Ustaw czas (np. gdy zapomniałeś włączyć stoper)',
                   ),
-                ],
               ],
             ),
             const SizedBox(height: 20),
@@ -159,8 +158,10 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                 },
               )
             else
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
                 children: [
                   _MainActionButton(
                     label: widget.isRunning ? 'Pauza' : 'Wznów',
@@ -176,7 +177,6 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                       }
                     },
                   ),
-                  const SizedBox(width: 12),
                   _MainActionButton(
                     label: 'Stop',
                     accentColor: Theme.of(context).colorScheme.error,
