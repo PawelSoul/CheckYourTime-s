@@ -14,6 +14,7 @@ class TimerState {
   const TimerState({
     required this.isRunning,
     required this.elapsed,
+    this.elapsedOffset = Duration.zero,
     this.activeSessionId,
     this.activeTaskId,
     this.activeCategoryId,
@@ -22,6 +23,8 @@ class TimerState {
 
   final bool isRunning;
   final Duration elapsed;
+  /// Offset dodawany do stopwatch – pozwala „ustawić” czas (np. 30 min), gdy użytkownik zapomniał włączyć.
+  final Duration elapsedOffset;
 
   final String? activeSessionId;
   final String? activeTaskId;
@@ -32,6 +35,7 @@ class TimerState {
   TimerState copyWith({
     bool? isRunning,
     Duration? elapsed,
+    Duration? elapsedOffset,
     String? activeSessionId,
     String? activeTaskId,
     String? activeCategoryId,
@@ -40,6 +44,7 @@ class TimerState {
     return TimerState(
       isRunning: isRunning ?? this.isRunning,
       elapsed: elapsed ?? this.elapsed,
+      elapsedOffset: elapsedOffset ?? this.elapsedOffset,
       activeSessionId: activeSessionId ?? this.activeSessionId,
       activeTaskId: activeTaskId ?? this.activeTaskId,
       activeCategoryId: activeCategoryId ?? this.activeCategoryId,
@@ -94,7 +99,7 @@ class TimerController extends Notifier<TimerState> {
     _cancelTicker();
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (_disposed || !state.isRunning) return;
-      state = state.copyWith(elapsed: _stopwatch.elapsed);
+      state = state.copyWith(elapsed: state.elapsedOffset + _stopwatch.elapsed);
     });
   }
 
@@ -140,6 +145,7 @@ class TimerController extends Notifier<TimerState> {
     state = state.copyWith(
       isRunning: true,
       elapsed: Duration.zero,
+      elapsedOffset: Duration.zero,
       activeSessionId: sessionId,
       activeTaskId: taskId,
       activeCategoryId: categoryId,
@@ -193,7 +199,7 @@ class TimerController extends Notifier<TimerState> {
 
     if (sessionId == null || taskId == null) return null;
 
-    final duration = _stopwatch.elapsed;
+    final duration = state.elapsedOffset + _stopwatch.elapsed;
     _stopwatch.stop();
     _cancelTicker();
 
@@ -220,6 +226,19 @@ class TimerController extends Notifier<TimerState> {
     if (_disposed) return null;
     // Nie resetujemy stanu tutaj – reset() wywołuje UI DOPIERO PO zamknięciu dialogu/ekranu nazwy.
     return StopResult(taskId: taskId, duration: duration);
+  }
+
+  /// Ustawia aktualny czas (elapsed) na podany. Przydatne, gdy użytkownik zapomniał włączyć stoper
+  /// (np. zaczął 30 min temu – ustawia 30 min i odliczanie idzie dalej).
+  void setElapsed(Duration newElapsed) {
+    if (_disposed) return;
+    if (newElapsed.isNegative) return;
+    _stopwatch.reset();
+    if (state.isRunning) _stopwatch.start();
+    state = state.copyWith(
+      elapsed: newElapsed,
+      elapsedOffset: newElapsed,
+    );
   }
 
   /// Resetuje stoper do stanu początkowego. Wywołać DOPIERO PO zamknięciu ekranu/dialogu nazwy (np. po Navigator.pop).

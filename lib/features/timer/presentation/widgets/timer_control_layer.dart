@@ -19,10 +19,12 @@ class TimerControlLayer extends ConsumerStatefulWidget {
     required this.isPaused,
     required this.categoryColorHex,
     required this.categoryName,
+    required this.currentElapsed,
     required this.onStart,
     required this.onPause,
     required this.onResume,
     required this.onStop,
+    this.onEditTime,
     required this.onTapScreen,
     required this.activeSessionId,
     required this.activeTaskId,
@@ -34,10 +36,13 @@ class TimerControlLayer extends ConsumerStatefulWidget {
   final bool isPaused;
   final String? categoryColorHex;
   final String categoryName;
+  final Duration currentElapsed;
   final VoidCallback onStart;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onStop;
+  /// Ustaw aktualny czas (np. gdy użytkownik zapomniał włączyć stoper).
+  final void Function(Duration)? onEditTime;
   final VoidCallback onTapScreen;
   final String? activeSessionId;
   final String? activeTaskId;
@@ -129,6 +134,18 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
                         },
                   tooltip: widget.isIdle ? 'Uruchom stoper, aby dodać notatkę' : null,
                 ),
+                if (!widget.isIdle && widget.onEditTime != null) ...[
+                  const SizedBox(width: 12),
+                  _QuickActionChip(
+                    label: 'Edytuj czas',
+                    icon: Icons.schedule_outlined,
+                    onTap: () {
+                      widget.onTapScreen();
+                      _showEditTimeDialog(context);
+                    },
+                    tooltip: 'Ustaw czas (np. gdy zapomniałeś włączyć stoper)',
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 20),
@@ -228,6 +245,125 @@ class TimerControlLayerState extends ConsumerState<TimerControlLayer> {
         if (mounted) _resetHideTimer();
       });
     });
+  }
+
+  void _showEditTimeDialog(BuildContext context) {
+    if (!mounted || widget.onEditTime == null) return;
+    setState(() => _controlsVisible = true);
+    _hideTimer?.cancel();
+    final currentMinutes = widget.currentElapsed.inMinutes;
+    showDialog<Duration>(
+      context: context,
+      builder: (ctx) => _EditTimeDialog(initialMinutes: currentMinutes),
+    ).then((duration) {
+      if (!mounted || duration == null) return;
+      widget.onEditTime!(duration);
+      _resetHideTimer();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Czas ustawiony na ${duration.inMinutes} min',
+          ),
+        ),
+      );
+    });
+  }
+}
+
+/// Dialog ustawiania czasu – gdy użytkownik zapomniał włączyć stoper (np. ustaw 30 min).
+class _EditTimeDialog extends StatefulWidget {
+  const _EditTimeDialog({required this.initialMinutes});
+
+  final int initialMinutes;
+
+  @override
+  State<_EditTimeDialog> createState() => _EditTimeDialogState();
+}
+
+class _EditTimeDialogState extends State<_EditTimeDialog> {
+  static const List<int> _presetMinutes = [15, 30, 45, 60, 90, 120];
+  late int _selectedMinutes;
+  late final TextEditingController _customController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMinutes = widget.initialMinutes > 0 ? widget.initialMinutes : 30;
+    _customController = TextEditingController(text: _selectedMinutes.toString());
+  }
+
+  @override
+  void dispose() {
+    _customController.dispose();
+    super.dispose();
+  }
+
+  int get _effectiveMinutes {
+    final n = int.tryParse(_customController.text);
+    return (n != null && n > 0) ? n : _selectedMinutes;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Ustaw czas'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Wybierz, od ilu minut ma liczyć stoper (np. zapomniałeś włączyć):',
+            style: TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final mins in _presetMinutes)
+                ChoiceChip(
+                  label: Text(mins < 60 ? '$mins min' : '${mins ~/ 60}h'),
+                  selected: _selectedMinutes == mins,
+                  onSelected: (s) {
+                    if (s) {
+                      setState(() {
+                        _selectedMinutes = mins;
+                        _customController.text = mins.toString();
+                      });
+                    }
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _customController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Własna liczba minut',
+              border: OutlineInputBorder(),
+              hintText: 'np. 25',
+            ),
+            onChanged: (v) {
+              final n = int.tryParse(v);
+              if (n != null && n > 0) setState(() => _selectedMinutes = n);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Anuluj'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+            Duration(minutes: _effectiveMinutes),
+          ),
+          child: const Text('Ustaw'),
+        ),
+      ],
+    );
   }
 }
 
