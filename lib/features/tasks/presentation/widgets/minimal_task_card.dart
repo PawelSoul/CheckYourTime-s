@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/category_colors.dart';
 import '../../../../core/utils/datetime_utils.dart';
+import '../../../../data/db/daos/tasks_dao.dart';
 import '../../tasks_providers.dart';
 import '../task_details_page.dart';
 
