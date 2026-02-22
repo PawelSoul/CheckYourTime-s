@@ -120,6 +120,16 @@ class TasksDao extends DatabaseAccessor<AppDb> with _$TasksDaoMixin {
     );
   }
 
+  /// Ustawia czas „rozpoczęcia” zadania (createdAt) – np. po edycji czasu w timerze, żeby statystyki i szczegóły zadania były spójne.
+  Future<void> setTaskCreatedAt(String id, int createdAtMs, int nowMs) async {
+    await (update(tasksTable)..where((t) => t.id.equals(id))).write(
+      TasksTableCompanion(
+        createdAt: Value(createdAtMs),
+        updatedAt: Value(nowMs),
+      ),
+    );
+  }
+
   /// Ustawia categoryId na null dla wszystkich zadań w danej kategorii (przed usunięciem kategorii).
   Future<void> clearCategoryIdForCategory(String categoryId) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;

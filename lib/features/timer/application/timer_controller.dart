@@ -228,11 +228,22 @@ class TimerController extends Notifier<TimerState> {
     return StopResult(taskId: taskId, duration: duration);
   }
 
-  /// Ustawia aktualny czas (elapsed) na podany. Przydatne, gdy użytkownik zapomniał włączyć stoper
-  /// (np. zaczął 30 min temu – ustawia 30 min i odliczanie idzie dalej).
-  void setElapsed(Duration newElapsed) {
+  /// Ustawia aktualny czas (elapsed) na podany i zapisuje „moment rozpoczęcia” w DB (sesja + zadanie),
+  /// żeby statystyki i szczegóły zadania traktowały zadanie jak rozpoczęte wtedy.
+  Future<void> setElapsed(Duration newElapsed) async {
     if (_disposed) return;
     if (newElapsed.isNegative) return;
+
+    final now = DateTime.now();
+    final editedStartMs = now.subtract(newElapsed).millisecondsSinceEpoch;
+    final nowMs = now.millisecondsSinceEpoch;
+
+    if (state.activeSessionId != null && state.activeTaskId != null) {
+      await _sessionsDao.updateSessionStart(state.activeSessionId!, editedStartMs, nowMs);
+      await _tasksDao.setTaskCreatedAt(state.activeTaskId!, editedStartMs, nowMs);
+    }
+
+    if (_disposed) return;
     _stopwatch.reset();
     if (state.isRunning) _stopwatch.start();
     state = state.copyWith(

@@ -122,6 +122,16 @@ class SessionsDao extends DatabaseAccessor<AppDb> with _$SessionsDaoMixin {
     return q.watch();
   }
 
+  /// Aktualizuje czas rozpoczęcia sesji (np. po edycji czasu w timerze).
+  Future<void> updateSessionStart(String sessionId, int startAtMs, int nowMs) async {
+    await (update(sessionsTable)..where((s) => s.id.equals(sessionId))).write(
+      SessionsTableCompanion(
+        startAt: Value(startAtMs),
+        updatedAt: Value(nowMs),
+      ),
+    );
+  }
+
   // --- UPDATE ---
   Future<void> updateNote(String sessionId, {String? note, required int nowMs}) async {
     await (update(sessionsTable)..where((s) => s.id.equals(sessionId))).write(
