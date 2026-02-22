@@ -87,7 +87,7 @@ class TasksListPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Wybierz kategorię powyżej,\nżeby zobaczyć listę zadań.',
+                          'Wybierz kategorię',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
