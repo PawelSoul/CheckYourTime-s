@@ -59,13 +59,6 @@ class SettingsPage extends ConsumerWidget {
                     const SizedBox(height: 12),
                     _divider(context),
                     _SettingsSwitchTile(
-                      title: 'Pasek postępu godziny',
-                      subtitle: 'Widoczny na górze ekranu timera',
-                      value: settings.progressBarVisible,
-                      onChanged: (v) => notifier.setProgressBarVisible(v),
-                    ),
-                    _divider(context),
-                    _SettingsSwitchTile(
                       title: 'Poświata nad kontrolkami',
                       subtitle: 'Delikatna poświata pod przyciskiem Start',
                       value: settings.glowVisible,

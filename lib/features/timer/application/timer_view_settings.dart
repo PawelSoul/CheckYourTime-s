@@ -6,7 +6,6 @@ const _keyAnalogMinuteHandVisible = 'analog_minute_hand_visible';
 const _keyAnalogHourHandVisible = 'analog_hour_hand_visible';
 const _keyAnalogNumbersStyle = 'analog_numbers_style';
 const _keyAnalogNumbersVisible = 'analog_numbers_visible';
-const _keyProgressBarVisible = 'timer_progress_bar_visible';
 const _keyGlowVisible = 'timer_glow_visible';
 const _keyPremiumProgressRingVisible = 'timer_premium_progress_ring_visible';
 const _keyDigitalMillisecondsVisible = 'digital_milliseconds_visible';
@@ -28,7 +27,6 @@ class TimerViewSettings {
     this.analogHourHandVisible = true,
     this.analogNumbersStyle = AnalogNumbersStyle.large,
     this.analogNumbersVisible = true,
-    this.progressBarVisible = false,
     this.glowVisible = false,
     this.premiumProgressRingVisible = true,
     this.digitalMillisecondsVisible = false,
@@ -39,7 +37,6 @@ class TimerViewSettings {
   final bool analogHourHandVisible;
   final AnalogNumbersStyle analogNumbersStyle;
   final bool analogNumbersVisible;
-  final bool progressBarVisible;
   final bool glowVisible;
   final bool premiumProgressRingVisible;
   final bool digitalMillisecondsVisible;
@@ -50,7 +47,6 @@ class TimerViewSettings {
     bool? analogHourHandVisible,
     AnalogNumbersStyle? analogNumbersStyle,
     bool? analogNumbersVisible,
-    bool? progressBarVisible,
     bool? glowVisible,
     bool? premiumProgressRingVisible,
     bool? digitalMillisecondsVisible,
@@ -61,7 +57,6 @@ class TimerViewSettings {
       analogHourHandVisible: analogHourHandVisible ?? this.analogHourHandVisible,
       analogNumbersStyle: analogNumbersStyle ?? this.analogNumbersStyle,
       analogNumbersVisible: analogNumbersVisible ?? this.analogNumbersVisible,
-      progressBarVisible: progressBarVisible ?? this.progressBarVisible,
       glowVisible: glowVisible ?? this.glowVisible,
       premiumProgressRingVisible: premiumProgressRingVisible ?? this.premiumProgressRingVisible,
       digitalMillisecondsVisible: digitalMillisecondsVisible ?? this.digitalMillisecondsVisible,
@@ -86,7 +81,6 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     final analogNumbersStyle =
         numbersStr == 'subtle' ? AnalogNumbersStyle.subtle : AnalogNumbersStyle.large;
     final numbersVisible = _prefs!.getBool(_keyAnalogNumbersVisible) ?? true;
-    final progressBarVisible = _prefs!.getBool(_keyProgressBarVisible) ?? false;
     final glowVisible = _prefs!.getBool(_keyGlowVisible) ?? false;
     final premiumProgressRingVisible = _prefs!.getBool(_keyPremiumProgressRingVisible) ?? true;
     final digitalMillisecondsVisible = _prefs!.getBool(_keyDigitalMillisecondsVisible) ?? false;
@@ -96,7 +90,6 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
       analogHourHandVisible: analogHourHandVisible,
       analogNumbersStyle: analogNumbersStyle,
       analogNumbersVisible: numbersVisible,
-      progressBarVisible: progressBarVisible,
       glowVisible: glowVisible,
       premiumProgressRingVisible: premiumProgressRingVisible,
       digitalMillisecondsVisible: digitalMillisecondsVisible,
@@ -157,12 +150,6 @@ class TimerViewSettingsNotifier extends StateNotifier<TimerViewSettings> {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs!.setBool(_keyAnalogNumbersVisible, visible);
     state = state.copyWith(analogNumbersVisible: visible);
-  }
-
-  Future<void> setProgressBarVisible(bool visible) async {
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs!.setBool(_keyProgressBarVisible, visible);
-    state = state.copyWith(progressBarVisible: visible);
   }
 
   Future<void> setGlowVisible(bool visible) async {
